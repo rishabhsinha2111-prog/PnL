@@ -151,16 +151,23 @@
 
 <div class="main">
 
-  <!-- Google Sheets setup guide -->
-  <div class="gs-setup" id="gsSetup">
+    <div class="gs-setup" id="gsSetup">
     <h3>📋 How to connect your Google Sheet</h3>
     <ol>
-      <li>Create a Google Sheet with 4 tabs named exactly: <code>sales</code>, <code>sales_return</code>, <code>purchases</code>, <code>stock</code></li>
-      <li>Paste your ERP exports into each tab (keep the original headers from row 6)</li>
-      <li>Click <strong>Share → Anyone with link → Viewer</strong></li>
-      <li>Paste the link above and click <strong>Load Sheet</strong></li>
+      <li>Sheet has 5 tabs: <code>sales</code>, <code>sales_return</code>, <code>purchases</code>, <code>purchase_return</code>, <code>stock</code></li>
+      <li>For <code>sales</code>, <code>sales_return</code>, <code>purchases</code>, <code>purchase_return</code> — just append each month's rows below the previous month. No changes needed.</li>
+      <li>For <code>stock</code> — before pasting each month's block, add a marker row in column A: <code>MONTH: April 2026</code>, then paste that month's stock report below it. Repeat for each month.</li>
+      <li>Share sheet as <strong>Anyone with link → Viewer</strong></li>
     </ol>
-    <div style="margin-top:8px; font-size:11px; color:#555;">💡 Tab column mapping: <code>sales</code> col V = Taxable Value, col S = Quantity · <code>stock</code> col D = Opening Qty, col F = Received Qty, col H = Issued Qty, col J = Balance Qty, col L = Avg Rate</div>
+    <div style="margin-top:8px;padding:8px 10px;background:#fef6e4;border-radius:6px;font-size:11px;color:#7d5a00;">
+      📌 Stock tab example layout:<br>
+      Row 1: <code>MONTH: January 2026</code><br>
+      Row 2: Item | Opening Qty | ... (headers)<br>
+      Row 3+: January stock data<br>
+      Row N: <code>MONTH: February 2026</code><br>
+      Row N+1: Item | Opening Qty | ... (headers)<br>
+      Row N+2+: February stock data
+    </div>
   </div>
 
   <!-- Month navigation -->
@@ -624,6 +631,59 @@ function groupRowsByMonth(rows) {
   return byMonth;
 }
 
+// ── STOCK TAB: parse using MONTH: marker rows ─────────────────────────────────
+// Format: paste a row with "MONTH: April 2026" before each month's stock block
+function parseStockByMarker(csv) {
+  if (!csv || !csv.trim()) return {};
+  const raw = parseCSV(csv);
+  const byMonth = {};
+  let currentMonth = null;
+  let headers = null;
+
+  for (const row of raw) {
+    const joined = row.join('').trim().replace(/"/g, '');
+    if (!joined) continue;
+
+    // Detect marker row: "MONTH: April 2026" or "MONTH:April 2026"
+    const markerMatch = joined.match(/^MONTH:\s*(.+)$/i);
+    if (markerMatch) {
+      currentMonth = markerMatch[1].trim();
+      headers = null; // reset headers for this block
+      if (!byMonth[currentMonth]) byMonth[currentMonth] = [];
+      continue;
+    }
+
+    // If no marker yet, try to detect month from ERP date range header
+    // e.g. "ForLastMonth01/04/2026 to 30/04/2026"
+    const dateRangeMatch = joined.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    if (!currentMonth && dateRangeMatch) {
+      const d = new Date(`${dateRangeMatch[3]}-${dateRangeMatch[2]}-${dateRangeMatch[1]}`);
+      if (!isNaN(d)) currentMonth = d.toLocaleString('en-IN',{month:'long'}) + ' ' + d.getFullYear();
+      if (!byMonth[currentMonth]) byMonth[currentMonth] = [];
+      continue;
+    }
+
+    if (isJunkRow(row)) continue;
+
+    // Header row for this block
+    if (isHeaderRow(row)) {
+      headers = row.map(h => h.replace(/"/g,'').trim());
+      continue;
+    }
+
+    // Data row
+    if (headers && currentMonth) {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = (row[i] || '').replace(/"/g,'').trim(); });
+      const first = Object.values(obj)[0] || '';
+      if (/sub total|grand total/i.test(first)) continue;
+      if (!obj['Item'] || !obj['Item'].trim()) continue;
+      byMonth[currentMonth].push(obj);
+    }
+  }
+  return byMonth;
+}
+
 // ── PROCESS ALL SHEET DATA → array of monthly data objects ───────────────────
 function processSheetData(csvs) {
   function n(v) { return parseFloat((v||'').toString().replace(/,/g,'')) || 0; }
@@ -639,14 +699,15 @@ function processSheetData(csvs) {
   const allReturns     = getTabRows(csvs.sales_return);
   const allPurchases   = getTabRows(csvs.purchases);
   const allPurchRet    = csvs.purchase_return ? getTabRows(csvs.purchase_return) : [];
-  const allStock       = getTabRows(csvs.stock);
+
+  // Stock uses marker-based month detection
+  const stockByMonth   = parseStockByMarker(csvs.stock);
 
   // Group each tab by month
   const salesByMonth    = groupRowsByMonth(allSales.filter(r => r['Warehouse Name'] || r['Salesman Name']));
   const returnsByMonth  = groupRowsByMonth(allReturns.filter(r => r['Item']));
   const purchRetByMonth = groupRowsByMonth(allPurchRet.filter(r => r['Item']));
   const purchByMonth    = groupRowsByMonth(allPurchases.filter(r => r['Item']));
-  const stockByMonth    = groupRowsByMonth(allStock.filter(r => r['Item'] && !/sub total|grand total/i.test(r['Item'])));
 
   // All months present across any tab
   const allMonthKeys = [...new Set([
@@ -663,10 +724,9 @@ function processSheetData(csvs) {
     const ret      = returnsByMonth[monthKey] || [];
     const purchRet = purchRetByMonth[monthKey] || [];
 
-    // Use stock from correct month if available, else fall back to all stock
-    const stockRows = (stockByMonth[monthKey] || allStock).filter(r =>
-      r['Item'] && !/sub total|grand total/i.test(r['Item'])
-    );
+    // Use stock from correct month marker; fall back to first available block if missing
+    const stockRows = (stockByMonth[monthKey] || Object.values(stockByMonth)[0] || [])
+      .filter(r => r['Item'] && !/sub total|grand total/i.test(r['Item']));
 
     const activeItems = new Set(sales.map(r => r['Item']).filter(Boolean));
     const activeStock = stockRows.filter(r => activeItems.has(r['Item']));
