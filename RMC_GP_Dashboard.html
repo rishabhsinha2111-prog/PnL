@@ -335,9 +335,11 @@ function groupByMonth(rows){
   const m={};
   rows.forEach(r=>{
     let key='Unknown';
-    const mc=r['month']||r['Month']||'', yc=r['year']||r['Year']||'';
-    if(mc&&yc){key=mc.trim()+' '+String(yc).trim().replace('.0','');}
-    else{
+    const mc=r['month']||r['Month']||r['MONTH']||'';
+    const yc=r['year']||r['Year']||r['YEAR']||'';
+    if(mc&&yc){
+      key=mc.trim()+' '+String(yc).trim().replace('.0','');
+    } else {
       const ds=r['Date']||r['date']||'';
       const pts=ds.split('/');
       if(pts.length===3){const d=new Date(`${pts[2]}-${pts[1]}-${pts[0]}`);if(!isNaN(d))key=d.toLocaleString('en-IN',{month:'long'})+' '+d.getFullYear();}
@@ -356,11 +358,15 @@ function processData(csvs){
   const sales=getRows(csvs.sales).filter(r=>r['Warehouse Name']||r['Salesman Name']);
   const rets=getRows(csvs.sales_return).filter(r=>r['Item']);
   const pret=getRows(csvs.purchase_return||'').filter(r=>r['Item']);
-  const stockBlocks=splitStockBlocks(csvs.stock||'');
 
-  // Build flat avg rate from all stock blocks
+  // Stock now uses month/year columns — same as purchases tab
+  // Use splitBlocks but treat as one flat list, then group by month/year
+  const stockRows=getRows(csvs.stock||'').filter(r=>r['Item']&&!/sub total|grand total/i.test(r['Item']));
+  const stockByMonth=groupByMonth(stockRows);
+
+  // Build flat avg rate across all months as fallback
   const flatRate={};
-  stockBlocks.flatMap(b=>b.rows).forEach(r=>{
+  stockRows.forEach(r=>{
     if(!r['Item'])return;
     const rt=n(r['Average Rate']||r['average rate']||0);
     if(rt>0)flatRate[r['Item']]=rt;
@@ -380,12 +386,12 @@ function processData(csvs){
     const rv=retsByMonth[key]||[];
     const pv=pretByMonth[key]||[];
 
-    // Match stock block by position (block 0 = first month, block 1 = second month...)
-    const sb=stockBlocks[idx]||stockBlocks[stockBlocks.length-1]||{rows:[]};
+    // Use month-matched stock rows
+    const stockMonth=stockByMonth[key]||[];
     const activeItems=new Set(sv.map(r=>r['Item']).filter(Boolean));
-    const activeStock=sb.rows.filter(r=>activeItems.has(r['Item']));
+    const activeStock=stockMonth.filter(r=>activeItems.has(r['Item']));
 
-    // Avg rate: use month-matched stock block, fill gaps from flat map
+    // Avg rate: month-matched first, then flat fallback
     const avgRate={};
     activeStock.forEach(r=>{
       const rt=n(r['Average Rate']||r['average rate']||0);
@@ -402,9 +408,13 @@ function processData(csvs){
     rv.forEach(r=>{r._tv=n(r['Taxable Value']);r._qty=n(r['Quantity']);});
     pv.forEach(r=>{r._tv=n(r['Taxable Value']);});
     activeStock.forEach(r=>{
-      r._ov=n(r['Opening Value']);r._oq=n(r['Opening  Qty']||r['Opening Qty']||0);
-      r._rv=n(r['Received Value']);r._rq=n(r['Received Qty']||0);
-      r._iv=n(r['Issued Value']);r._bv=n(r['Balance Value']);r._bq=n(r['Balance Qty']||0);
+      r._ov=n(r['Opening Value']||0);
+      r._oq=n(r['Opening Qty']||r['Opening  Qty']||r['Opening Quantity']||0);
+      r._rv=n(r['Received Value']||0);
+      r._rq=n(r['Received Qty']||r['Received Quantity']||0);
+      r._iv=n(r['Issued Value']||0);
+      r._bv=n(r['Balance Value']||0);
+      r._bq=n(r['Balance Qty']||r['Balance Quantity']||0);
     });
 
     const grossRev=sv.reduce((s,r)=>s+r._tv,0);
