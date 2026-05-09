@@ -365,7 +365,27 @@ function n(v){
 }
 
 function processData(csvs){
-  function getRows(csv){return splitBlocks(parseCSV(csv||'')).flatMap(b=>b.rows);}
+  function getRows(csv){
+    const blocks=splitBlocks(parseCSV(csv||''));
+    const allRows=blocks.flatMap(b=>b.rows);
+    // Fill down key fields — ERP only puts them on first line of each invoice
+    let lastDate='', lastVoucher='', lastWarehouse='', lastSalesman='', lastMonth='', lastYear='';
+    allRows.forEach(r=>{
+      if(r['Date']&&r['Date'].trim()) lastDate=r['Date'].trim();
+      else r['Date']=lastDate;
+      if(r['Voucher']&&r['Voucher'].trim()) lastVoucher=r['Voucher'].trim();
+      else r['Voucher']=lastVoucher;
+      if(r['Warehouse Name']&&r['Warehouse Name'].trim()) lastWarehouse=r['Warehouse Name'].trim();
+      else r['Warehouse Name']=lastWarehouse;
+      if(r['Salesman Name']&&r['Salesman Name'].trim()) lastSalesman=r['Salesman Name'].trim();
+      else r['Salesman Name']=lastSalesman;
+      if(r['month']&&r['month'].trim()) lastMonth=r['month'].trim();
+      else r['month']=lastMonth;
+      if(r['year']&&r['year'].trim()) lastYear=r['year'].trim();
+      else r['year']=lastYear;
+    });
+    return allRows;
+  }
 
   const sales=getRows(csvs.sales).filter(r=>r['Warehouse Name']||r['Salesman Name']);
   const rets=getRows(csvs.sales_return).filter(r=>r['Item']);
