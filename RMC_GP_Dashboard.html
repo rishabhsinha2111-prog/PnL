@@ -280,8 +280,17 @@ function renderMoM(){
 function parseCSV(text){
   return text.trim().split('\n').map(line=>{
     const cols=[]; let cur='',inQ=false;
-    for(const c of line){if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=c;}
-    cols.push(cur.trim()); return cols;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){
+        if(inQ&&line[i+1]==='"'){cur+='"';i++;}
+        else inQ=!inQ;
+      } else if(c===','&&!inQ){
+        cols.push(cur.trim());cur='';
+      } else cur+=c;
+    }
+    cols.push(cur.trim());
+    return cols;
   });
 }
 
@@ -350,7 +359,10 @@ function groupByMonth(rows){
   return m;
 }
 
-function n(v){return parseFloat((v||'').toString().replace(/,/g,''))||0;}
+function n(v){
+  const s=(v||'').toString().replace(/,/g,'').replace(/#/g,'').trim();
+  return parseFloat(s)||0;
+}
 
 function processData(csvs){
   function getRows(csv){return splitBlocks(parseCSV(csv||'')).flatMap(b=>b.rows);}
