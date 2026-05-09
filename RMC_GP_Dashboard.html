@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RMC India — GP Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --card: #ffffff;
+    --border: #e8e6df;
+    --text: #1a1a18;
+    --muted: #6b6960;
+    --accent: #1a6b4a;
+    --accent-light: #e8f5ee;
+    --danger: #c0392b;
+    --danger-light: #fdf0ee;
+    --warn: #b7690a;
+    --warn-light: #fef6e4;
+    --blue: #1a5276;
+    --blue-light: #eaf2fb;
+    --radius: 10px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* ── HEADER ── */
+  .header { background: #1a1a18; color: #fff; padding: 18px 28px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .header-left h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-left p { font-size: 12px; color: #aaa; margin-top: 2px; }
+  .header-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .gs-input { background: #2a2a28; border: 1px solid #444; color: #fff; padding: 7px 12px; border-radius: 6px; font-size: 12px; width: 340px; }
+  .gs-input::placeholder { color: #777; }
+  .btn { padding: 7px 14px; border-radius: 6px; border: none; font-size: 12px; cursor: pointer; font-weight: 500; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: #1a6b4a; color: #fff; }
+  .btn-secondary { background: #333; color: #ccc; }
+  .status-pill { font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 500; }
+  .status-demo { background: #2a2a28; color: #aaa; }
+  .status-live { background: #1a3d28; color: #4ade80; }
+  .status-err { background: #3d1a1a; color: #f87171; }
+
+  /* ── LAYOUT ── */
+  .main { padding: 20px 28px; max-width: 1400px; margin: 0 auto; }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; margin-top: 22px; }
+
+  /* ── KPI GRID ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+  .kpi-card.accent { background: var(--accent-light); border-color: #b2d8c4; }
+  .kpi-card.danger { background: var(--danger-light); border-color: #f0b8b0; }
+  .kpi-card.warn { background: var(--warn-light); border-color: #fad89a; }
+  .kpi-card.blue { background: var(--blue-light); border-color: #aac9e8; }
+  .kpi-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+  .kpi-value { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .kpi-card.accent .kpi-value { color: var(--accent); }
+  .kpi-card.danger .kpi-value { color: var(--danger); }
+  .kpi-card.warn .kpi-value { color: var(--warn); }
+  .kpi-card.blue .kpi-value { color: var(--blue); }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* ── WATERFALL ── */
+  .waterfall { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+  .wf-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+  .wf-label { font-size: 12px; color: var(--muted); width: 130px; flex-shrink: 0; text-align: right; }
+  .wf-track { flex: 1; height: 26px; background: var(--bg); border-radius: 4px; overflow: hidden; position: relative; }
+  .wf-bar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 11px; font-weight: 600; white-space: nowrap; transition: width 0.6s ease; }
+  .wf-sub { font-size: 11px; color: var(--muted); width: 90px; text-align: right; flex-shrink: 0; }
+  .bar-rev { background: #2980b9; color: #fff; }
+  .bar-ret { background: #e67e22; color: #fff; }
+  .bar-netrev { background: #1a6b9a; color: #fff; }
+  .bar-cogs { background: #c0392b; color: #fff; }
+  .bar-gp { background: #1a6b4a; color: #fff; }
+  .bar-freight { background: #8e44ad; color: #fff; }
+  .bar-gpnet { background: #0d4a32; color: #fff; }
+
+  /* ── STOCK STRIP ── */
+  .stock-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow); }
+  .stock-item { text-align: center; }
+  .stock-item + .stock-item { border-left: 1px solid var(--border); }
+  .stock-val { font-size: 18px; font-weight: 700; color: var(--text); }
+  .stock-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .stock-qty { font-size: 11px; color: var(--accent); margin-top: 1px; font-weight: 500; }
+
+  /* ── CHARTS ROW ── */
+  .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+  .chart-card h3 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* ── TABS ── */
+  .tab-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .tab-bar { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .tab-btn { padding: 10px 16px; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; border: none; background: none; white-space: nowrap; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab-btn:hover { color: var(--text); background: var(--bg); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--card); }
+  .tab-content { padding: 16px; }
+
+  /* ── TABLE ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+  .data-table th.r { text-align: right; }
+  .data-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .data-table td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg); }
+  .pill { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+  .pill-green { background: #d4edda; color: #1a5e2e; }
+  .pill-amber { background: #fff3cd; color: #7d5a00; }
+  .pill-red { background: #fde8e8; color: #7d1c1c; }
+  .pill-blue { background: #dbeafe; color: #1e3a8a; }
+
+  /* ── GP METER ── */
+  .gp-bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .gp-bar-bg { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .gp-bar-fill { height: 100%; border-radius: 3px; }
+
+  /* ── MONTH SELECTOR ── */
+  .month-nav { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .month-chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); background: var(--card); color: var(--muted); transition: all 0.15s; }
+  .month-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .month-chip:hover:not(.active) { background: var(--bg); }
+
+  /* ── NOTICE ── */
+  .notice { background: var(--warn-light); border: 1px solid #fad89a; border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: var(--warn); display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .gs-setup { background: var(--blue-light); border: 1px solid #aac9e8; border-radius: var(--radius); padding: 14px 18px; font-size: 12px; color: var(--blue); margin-bottom: 16px; }
+  .gs-setup h3 { font-weight: 600; margin-bottom: 8px; font-size: 13px; }
+  .gs-setup ol { padding-left: 18px; line-height: 2; }
+  .gs-setup code { background: #dbeafe; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 11px; }
+
+  /* ── FOOTER ── */
+  .footer { text-align: center; padding: 20px; font-size: 11px; color: var(--muted); margin-top: 30px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>RMC India Pvt Ltd — GP Dashboard</h1>
+    <p>Food Division · Paperboat · Ex-GST basis</p>
+  </div>
+  <div class="header-right">
+    <input class="gs-input" id="gsUrl" type="text" placeholder="Paste Google Sheet URL here…" />
+    <button class="btn btn-primary" onclick="loadFromSheet()">Load Sheet</button>
+    <button class="btn btn-secondary" onclick="loadDemo()">Load Demo</button>
+    <span class="status-pill status-demo" id="statusPill">● Demo data</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Google Sheets setup guide -->
+  <div class="gs-setup" id="gsSetup">
+    <h3>📋 How to connect your Google Sheet</h3>
+    <ol>
+      <li>Create a Google Sheet with 4 tabs named exactly: <code>sales</code>, <code>sales_return</code>, <code>purchases</code>, <code>stock</code></li>
+      <li>Paste your ERP exports into each tab (keep the original headers from row 6)</li>
+      <li>Click <strong>Share → Anyone with link → Viewer</strong></li>
+      <li>Paste the link above and click <strong>Load Sheet</strong></li>
+    </ol>
+    <div style="margin-top:8px; font-size:11px; color:#555;">💡 Tab column mapping: <code>sales</code> col V = Taxable Value, col S = Quantity · <code>stock</code> col D = Opening Qty, col F = Received Qty, col H = Issued Qty, col J = Balance Qty, col L = Avg Rate</div>
+  </div>
+
+  <!-- Month navigation -->
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+    <div class="month-nav" id="monthNav"></div>
+    <div style="font-size:12px; color:var(--muted);" id="periodLabel">Period: 01 Apr – 30 Apr 2026</div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="section-title">Profit & Loss Summary</div>
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- Waterfall + Stock -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+    <div>
+      <div class="section-title">P&L Waterfall</div>
+      <div class="waterfall" id="waterfall"></div>
+    </div>
+    <div>
+      <div class="section-title">Stock Position</div>
+      <div class="stock-strip" id="stockStrip"></div>
+      <div style="margin-top:14px;">
+        <div class="section-title">B2B vs B2C</div>
+        <div class="chart-card" style="padding:14px;">
+          <div class="chart-wrap" style="height:140px;">
+            <canvas id="btypeChart" role="img" aria-label="B2B vs B2C revenue split"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily chart -->
+  <div class="section-title" style="margin-top:20px;">Daily Trend</div>
+  <div class="chart-card">
+    <div class="chart-wrap" style="height:220px;">
+      <canvas id="dailyChart" role="img" aria-label="Daily revenue and gross profit trend"></canvas>
+    </div>
+  </div>
+
+  <!-- Breakdown tabs -->
+  <div class="section-title" style="margin-top:20px;">Breakdown</div>
+  <div class="tab-section">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('salesman',this)">By Salesman</button>
+      <button class="tab-btn" onclick="switchTab('category',this)">By Category</button>
+      <button class="tab-btn" onclick="switchTab('customer',this)">Top Customers</button>
+      <button class="tab-btn" onclick="switchTab('sku',this)">Top SKUs</button>
+      <button class="tab-btn" onclick="switchTab('warehouse',this)">By Warehouse</button>
+    </div>
+    <div class="tab-content" id="tabContent"></div>
+  </div>
+
+  <!-- MoM / YoY placeholder -->
+  <div class="section-title" style="margin-top:20px;">Month-on-Month Trend</div>
+  <div class="chart-card" id="momSection">
+    <div style="text-align:center; padding:30px; color:var(--muted); font-size:13px;">
+      📅 Month-on-month and YoY comparison will appear here once you load 2+ months of data.<br>
+      <span style="font-size:11px; margin-top:6px; display:block;">Each month's data is stored in your browser. Load a new month's sheet and it will be added automatically.</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">RMC India Pvt Ltd · GP Dashboard · Built for Food Division · Data is read-only from your Google Sheet</div>
+
+<script>
+// ── DEMO DATA (April 2026) ──────────────────────────────────────────────────
+const DEMO = {"meta":{"month":"April 2026","period":"01 Apr – 30 Apr 2026"},"kpis":{"gross_rev":35704290,"sales_ret":31641,"net_rev":35672649,"cogs":34081150,"gp":1591499,"gp_pct":4.46,"freight":192260,"gp_after":1399239,"gp_after_pct":3.92,"open_stock":9164144,"purchases":32038471,"close_stock":7121466,"open_qty":22181,"purch_qty":79951,"close_qty":17611,"total_qty":84521},"daily":[{"Day":1,"revenue":303076,"qty":705,"freight":6200,"cogs":279042,"gp":24034},{"Day":2,"revenue":4173932,"qty":9936,"freight":10200,"cogs":3888876,"gp":285056},{"Day":3,"revenue":1604288,"qty":3896,"freight":20960,"cogs":1528391,"gp":75897},{"Day":4,"revenue":724569,"qty":1717,"freight":2000,"cogs":661568,"gp":63001},{"Day":6,"revenue":497124,"qty":1139,"freight":3650,"cogs":433051,"gp":64073},{"Day":7,"revenue":1440397,"qty":3400,"freight":7300,"cogs":1289573,"gp":150824},{"Day":8,"revenue":374327,"qty":885,"freight":4000,"cogs":323337,"gp":50991},{"Day":9,"revenue":1225227,"qty":2891,"freight":3200,"cogs":1149081,"gp":76147},{"Day":10,"revenue":1198578,"qty":2834,"freight":6300,"cogs":1121782,"gp":76795},{"Day":11,"revenue":1717320,"qty":4152,"freight":4000,"cogs":1611057,"gp":106262},{"Day":13,"revenue":147143,"qty":326,"freight":1000,"cogs":133197,"gp":13946},{"Day":14,"revenue":1831917,"qty":4321,"freight":6800,"cogs":1757243,"gp":74674},{"Day":15,"revenue":1684975,"qty":3952,"freight":2500,"cogs":1599320,"gp":85654},{"Day":16,"revenue":1284453,"qty":3062,"freight":11000,"cogs":1219283,"gp":65170},{"Day":17,"revenue":657113,"qty":1491,"freight":5200,"cogs":601138,"gp":55975},{"Day":18,"revenue":786974,"qty":1818,"freight":16600,"cogs":725436,"gp":61537},{"Day":20,"revenue":1001645,"qty":2338,"freight":18900,"cogs":932776,"gp":68869},{"Day":21,"revenue":3786302,"qty":8944,"freight":9500,"cogs":3595127,"gp":191175},{"Day":22,"revenue":1283858,"qty":3013,"freight":6150,"cogs":1211436,"gp":72422},{"Day":23,"revenue":320877,"qty":767,"freight":6500,"cogs":306869,"gp":14008},{"Day":24,"revenue":1708602,"qty":4037,"freight":5300,"cogs":1614352,"gp":94250},{"Day":25,"revenue":1007780,"qty":2315,"freight":3650,"cogs":939070,"gp":68710},{"Day":27,"revenue":548533,"qty":1214,"freight":3000,"cogs":506360,"gp":42173},{"Day":28,"revenue":766603,"qty":1826,"freight":5500,"cogs":719195,"gp":47408},{"Day":29,"revenue":940892,"qty":2205,"freight":4800,"cogs":889262,"gp":51630},{"Day":30,"revenue":4687787,"qty":11337,"freight":18050,"cogs":4083788,"gp":603999}],"by_category":[{"category":"SWING PET -270ML RS.20","revenue":17219993,"qty":41377,"cogs":16298207,"gp":921786,"gp_pct":5.4},{"category":"Swing 140ml","revenue":16253108,"qty":39687,"cogs":14976137,"gp":1276971,"gp_pct":7.9},{"category":"SWING 600 ML RS.40","revenue":1487370,"qty":2246,"cogs":1411171,"gp":76199,"gp_pct":5.1},{"category":"PAPERBOAT","revenue":594468,"qty":915,"cogs":425221,"gp":169247,"gp_pct":28.5},{"category":"SWING 2LTR","revenue":91500,"qty":182,"cogs":0,"gp":91500,"gp_pct":100},{"category":"SWING PET -250ML RS.20","revenue":8467,"qty":20,"cogs":7536,"gp":930,"gp_pct":11.0}],"by_salesman":[{"name":"Ganesh Rajput","revenue":29559981,"qty":69947,"cogs":27581102,"gp":1978879,"gp_pct":6.7},{"name":"Sanjay Chavan","revenue":3336861,"qty":8170,"cogs":2926582,"gp":410279,"gp_pct":12.3},{"name":"Dhondiram","revenue":1298077,"qty":3064,"cogs":1250642,"gp":47436,"gp_pct":3.7},{"name":"Rajesh Upadhyay","revenue":1077482,"qty":2383,"cogs":957622,"gp":119860,"gp_pct":11.1},{"name":"Rahul Dhariya","revenue":281943,"qty":601,"cogs":263308,"gp":18635,"gp_pct":6.6},{"name":"PAPER BOAT","revenue":147417,"qty":350,"cogs":138000,"gp":9417,"gp_pct":6.4}],"by_customer":[{"name":"SAMARTH TRADERS,AURANGABAD","revenue":5695380,"qty":13839,"cogs":5293651,"gp":401729,"gp_pct":7.1},{"name":"Amruta Sales- Kolhapur","revenue":3336861,"qty":8170,"cogs":2926582,"gp":410279,"gp_pct":12.3},{"name":"SAP ENTERPRISES,SOLAPUR","revenue":2954773,"qty":7165,"cogs":2847438,"gp":107336,"gp_pct":3.6},{"name":"Ganesh Enterprises,Chiplun","revenue":2803222,"qty":6620,"cogs":2604905,"gp":198317,"gp_pct":7.1},{"name":"BASANT ENTERPRISES - SANGAMNER PB","revenue":2572331,"qty":6208,"cogs":2460428,"gp":111903,"gp_pct":4.4},{"name":"V G ENTERPRISES,SANGALI","revenue":1298077,"qty":3064,"cogs":1250642,"gp":47436,"gp_pct":3.7},{"name":"YASHTARA INDUSTRIES,Sindhudurg","revenue":1222234,"qty":2930,"cogs":1165847,"gp":56387,"gp_pct":4.6},{"name":"Kavya Agency,Latur","revenue":888985,"qty":2125,"cogs":849651,"gp":39334,"gp_pct":4.4},{"name":"POOJA ENTERPRISES,DEHU ROAD","revenue":731962,"qty":1573,"cogs":640985,"gp":90977,"gp_pct":12.4},{"name":"AHAD SALES - BHAVANI PETH","revenue":672822,"qty":1493,"cogs":614265,"gp":58557,"gp_pct":8.7}],"by_sku":[{"Item":"Swing Coconut Water X 30 PET 270ML 20","category":"270ML","revenue":6657747,"qty":16002,"cogs":6360795,"gp":296952,"gp_pct":4.5,"avg_rate":397.5,"open_qty":4872,"close_qty":4310},{"Item":"PB PET SWING ZESTY POMEGRANATE X 30 BOT 270ML 20","category":"270ML","revenue":6163445,"qty":14881,"cogs":5915198,"gp":248247,"gp_pct":4.0,"avg_rate":397.5,"open_qty":2277,"close_qty":1301},{"Item":"SWING SLURPY MANGO X 54 SPH 140ML","category":"140ML","revenue":3008910,"qty":7356,"cogs":2879286,"gp":129625,"gp_pct":4.3,"avg_rate":391.4,"open_qty":1407,"close_qty":1231},{"Item":"SWING LUSH LYCHEE X 54 SPH 140ML","category":"140ML","revenue":2523381,"qty":6146,"cogs":2405667,"gp":117714,"gp_pct":4.7,"avg_rate":391.4,"open_qty":1562,"close_qty":1406},{"Item":"SWING YUMMY GUAVA X 54 SPH 140ML","category":"140ML","revenue":2407165,"qty":5871,"cogs":2298027,"gp":109138,"gp_pct":4.5,"avg_rate":391.4,"open_qty":1065,"close_qty":524},{"Item":"SWING MIXED FRUIT X 54 SPH 140ML","category":"140ML","revenue":2155585,"qty":5255,"cogs":2056912,"gp":98673,"gp_pct":4.6,"avg_rate":391.4,"open_qty":972,"close_qty":797},{"Item":"PB PET SWING LUSH LYCHEE X 30 BOT 270ML 20","category":"270ML","revenue":1833641,"qty":4385,"cogs":1742950,"gp":90691,"gp_pct":4.9,"avg_rate":397.5,"open_qty":2238,"close_qty":2043},{"Item":"SWING COCONUT WATER X 54 SPH 140ML","category":"140ML","revenue":1594811,"qty":3888,"cogs":1521841,"gp":72970,"gp_pct":4.6,"avg_rate":391.4,"open_qty":996,"close_qty":1013},{"Item":"SWING POMEGRANATE X 54 SPH 140ML","category":"140ML","revenue":1414368,"qty":3436,"cogs":1344919,"gp":69449,"gp_pct":4.9,"avg_rate":391.4,"open_qty":824,"close_qty":543},{"Item":"SWING PULPY ORANGE X 54 SPH 140ML","category":"140ML","revenue":1335826,"qty":3250,"cogs":1272115,"gp":63711,"gp_pct":4.8,"avg_rate":391.4,"open_qty":1519,"close_qty":924}],"by_warehouse":[{"name":"PB DD","revenue":18544497,"qty":44660,"cogs":17356789,"gp":1187708,"gp_pct":6.4},{"name":"WADKI PB","revenue":15920744,"qty":36826,"cogs":14664871,"gp":1255873,"gp_pct":7.9},{"name":"YD DD","revenue":1239049,"qty":3035,"cogs":1097950,"gp":141099,"gp_pct":11.4}],"by_btype":[{"type":"B2B","revenue":29499926,"qty":70171,"cogs":27369684,"gp":2130242,"gp_pct":7.2},{"type":"B2C","revenue":6204364,"qty":14350,"cogs":5749925,"gp":454439,"gp_pct":7.3}]};
+
+// ── STATE ───────────────────────────────────────────────────────────────────
+let allMonths = {}; // { 'April 2026': data, ... }
+let currentMonth = null;
+let currentTab = 'salesman';
+let charts = {};
+
+// ── FORMAT HELPERS ──────────────────────────────────────────────────────────
+const cr = v => v >= 1e7 ? '₹' + (v/1e7).toFixed(2) + 'Cr' : v >= 1e5 ? '₹' + (v/1e5).toFixed(2) + 'L' : '₹' + Math.round(v).toLocaleString('en-IN');
+const lk = v => v >= 1e5 ? '₹' + (v/1e5).toFixed(1) + 'L' : '₹' + Math.round(v).toLocaleString('en-IN');
+const pct = v => (Math.round(v * 10) / 10).toFixed(1) + '%';
+const num = v => Math.round(v).toLocaleString('en-IN');
+function pillClass(p) { return p >= 8 ? 'pill-green' : p >= 5 ? 'pill-blue' : p >= 3 ? 'pill-amber' : 'pill-red'; }
+
+// ── LOAD DEMO ───────────────────────────────────────────────────────────────
+function loadDemo() {
+  addMonth(DEMO);
+  document.getElementById('gsSetup').style.display = 'none';
+  document.getElementById('statusPill').textContent = '● Demo data';
+  document.getElementById('statusPill').className = 'status-pill status-demo';
+}
+
+// ── ADD MONTH ────────────────────────────────────────────────────────────────
+function addMonth(data) {
+  allMonths[data.meta.month] = data;
+  currentMonth = data.meta.month;
+  renderMonthNav();
+  renderAll(data);
+  renderMoM();
+}
+
+// ── MONTH NAV ────────────────────────────────────────────────────────────────
+function renderMonthNav() {
+  const nav = document.getElementById('monthNav');
+  const months = Object.keys(allMonths);
+  nav.innerHTML = months.map(m =>
+    `<div class="month-chip ${m===currentMonth?'active':''}" onclick="selectMonth('${m}')">${m}</div>`
+  ).join('');
+}
+
+function selectMonth(m) {
+  currentMonth = m;
+  renderMonthNav();
+  renderAll(allMonths[m]);
+}
+
+// ── RENDER ALL ───────────────────────────────────────────────────────────────
+function renderAll(d) {
+  document.getElementById('periodLabel').textContent = 'Period: ' + d.meta.period;
+  renderKPIs(d.kpis);
+  renderWaterfall(d.kpis);
+  renderStock(d.kpis);
+  renderDaily(d.daily);
+  renderBtype(d.by_btype);
+  renderTab(currentTab, d);
+}
+
+// ── KPIs ─────────────────────────────────────────────────────────────────────
+function renderKPIs(k) {
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card blue"><div class="kpi-label">Gross Revenue</div><div class="kpi-value">${cr(k.gross_rev)}</div><div class="kpi-sub">${num(k.total_qty)} cases sold</div></div>
+    <div class="kpi-card"><div class="kpi-label">Sales Returns</div><div class="kpi-value">${cr(k.sales_ret)}</div><div class="kpi-sub">deducted from revenue</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Net Revenue</div><div class="kpi-value">${cr(k.net_rev)}</div><div class="kpi-sub">ex-GST</div></div>
+    <div class="kpi-card danger"><div class="kpi-label">COGS</div><div class="kpi-value">${cr(k.cogs)}</div><div class="kpi-sub">stock issued value</div></div>
+    <div class="kpi-card accent"><div class="kpi-label">Gross Profit</div><div class="kpi-value">${cr(k.gp)}</div><div class="kpi-sub">before freight</div></div>
+    <div class="kpi-card accent"><div class="kpi-label">GP Margin</div><div class="kpi-value">${pct(k.gp_pct)}</div><div class="kpi-sub">before freight</div></div>
+    <div class="kpi-card warn"><div class="kpi-label">Freight</div><div class="kpi-value">${cr(k.freight)}</div><div class="kpi-sub">other charges</div></div>
+    <div class="kpi-card accent"><div class="kpi-label">GP after Freight</div><div class="kpi-value">${cr(k.gp_after)}</div><div class="kpi-sub">${pct(k.gp_after_pct)} margin</div></div>
+  `;
+}
+
+// ── WATERFALL ────────────────────────────────────────────────────────────────
+function renderWaterfall(k) {
+  const max = k.gross_rev;
+  const rows = [
+    {label:'Gross Revenue', val:k.gross_rev, cls:'bar-rev'},
+    {label:'− Sales Returns', val:k.sales_ret, cls:'bar-ret'},
+    {label:'Net Revenue', val:k.net_rev, cls:'bar-netrev'},
+    {label:'− COGS', val:k.cogs, cls:'bar-cogs'},
+    {label:'Gross Profit', val:k.gp, cls:'bar-gp'},
+    {label:'− Freight', val:k.freight, cls:'bar-freight'},
+    {label:'GP after Freight', val:k.gp_after, cls:'bar-gpnet'},
+  ];
+  document.getElementById('waterfall').innerHTML = rows.map(r => `
+    <div class="wf-row">
+      <span class="wf-label">${r.label}</span>
+      <div class="wf-track">
+        <div class="wf-bar ${r.cls}" style="width:${Math.max(1,(r.val/max*100)).toFixed(1)}%">${cr(r.val)}</div>
+      </div>
+      <span class="wf-sub">${pct(r.val/max*100)}</span>
+    </div>`).join('');
+}
+
+// ── STOCK STRIP ───────────────────────────────────────────────────────────────
+function renderStock(k) {
+  document.getElementById('stockStrip').innerHTML = `
+    <div class="stock-item"><div class="stock-val">${cr(k.open_stock)}</div><div class="stock-lbl">Opening Stock</div><div class="stock-qty">${num(k.open_qty)} cases</div></div>
+    <div class="stock-item"><div class="stock-val">${cr(k.purchases)}</div><div class="stock-lbl">+ Purchases</div><div class="stock-qty">${num(k.purch_qty)} cases</div></div>
+    <div class="stock-item"><div class="stock-val" style="color:var(--danger)">${cr(k.cogs)}</div><div class="stock-lbl">− COGS Issued</div><div class="stock-qty">${num(k.total_qty)} cases</div></div>
+    <div class="stock-item"><div class="stock-val" style="color:var(--blue)">${cr(k.close_stock)}</div><div class="stock-lbl">Closing Stock</div><div class="stock-qty">${num(k.close_qty)} cases</div></div>
+  `;
+}
+
+// ── DAILY CHART ───────────────────────────────────────────────────────────────
+function renderDaily(daily) {
+  if (charts.daily) charts.daily.destroy();
+  const labels = daily.map(d => 'Apr ' + (d.Day || d.day));
+  const revData = daily.map(d => Math.round(d.revenue || 0));
+  const gpData = daily.map(d => Math.round(d.gp || 0));
+  charts.daily = new Chart(document.getElementById('dailyChart'), {
+    data: {
+      labels,
+      datasets: [
+        { type:'bar', label:'Revenue', data: revData, backgroundColor:'#aac9e8', yAxisID:'y1', order:2 },
+        { type:'line', label:'Gross Profit', data: gpData, borderColor:'#1a6b4a', backgroundColor:'transparent', borderWidth:2.5, pointRadius:3, pointBackgroundColor:'#1a6b4a', yAxisID:'y2', order:1, tension:0.3 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{font:{size:10}, color:'#888', maxRotation:0, autoSkip:true, maxTicksLimit:13} },
+        y1:{ position:'left', grid:{color:'rgba(0,0,0,0.05)'}, ticks:{callback:v=>'₹'+(v/1e5).toFixed(0)+'L', font:{size:10}, color:'#888'} },
+        y2:{ position:'right', grid:{display:false}, ticks:{callback:v=>'₹'+(v/1e3).toFixed(0)+'K', font:{size:10}, color:'#1a6b4a'} }
+      }
+    }
+  });
+}
+
+// ── B-TYPE CHART ──────────────────────────────────────────────────────────────
+function renderBtype(bt) {
+  if (charts.btype) charts.btype.destroy();
+  charts.btype = new Chart(document.getElementById('btypeChart'), {
+    type:'bar',
+    data:{
+      labels: bt.map(b => b.type),
+      datasets:[
+        {label:'Revenue', data:bt.map(b=>b.revenue), backgroundColor:'#aac9e8'},
+        {label:'COGS', data:bt.map(b=>b.cogs), backgroundColor:'#f0b8b0'},
+        {label:'GP', data:bt.map(b=>b.gp), backgroundColor:'#b2d8c4'}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:true, labels:{font:{size:10}, boxWidth:10, padding:8}}},
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:11}}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{callback:v=>'₹'+(v/1e5).toFixed(0)+'L', font:{size:10}}}
+      }
+    }
+  });
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTab(tab, allMonths[currentMonth]);
+}
+
+function renderTab(tab, d) {
+  const tc = document.getElementById('tabContent');
+  if (tab === 'salesman') tc.innerHTML = makeTable(d.by_salesman, ['name','revenue','qty','cogs','gp','gp_pct'], ['Salesman','Revenue','Cases','COGS','Gross Profit','GP%']);
+  else if (tab === 'category') tc.innerHTML = makeTable(d.by_category, ['category','revenue','qty','cogs','gp','gp_pct'], ['Category','Revenue','Cases','COGS','Gross Profit','GP%']);
+  else if (tab === 'customer') tc.innerHTML = makeTable(d.by_customer, ['name','revenue','qty','cogs','gp','gp_pct'], ['Customer','Revenue','Cases','COGS','Gross Profit','GP%']);
+  else if (tab === 'sku') tc.innerHTML = makeSkuTable(d.by_sku);
+  else if (tab === 'warehouse') tc.innerHTML = makeTable(d.by_warehouse, ['name','revenue','qty','cogs','gp','gp_pct'], ['Warehouse','Revenue','Cases','COGS','Gross Profit','GP%']);
+}
+
+function makeTable(rows, keys, headers) {
+  const head = headers.map((h,i) => `<th class="${i>0?'r':''}">${h}</th>`).join('');
+  const body = rows.map(r => {
+    const gpPct = r[keys[5]] || r.gp_pct || 0;
+    return `<tr>
+      <td>${r[keys[0]]}</td>
+      <td class="r">${cr(r[keys[1]])}</td>
+      <td class="r">${num(r[keys[2]])}</td>
+      <td class="r">${cr(r[keys[3]])}</td>
+      <td class="r">${lk(r[keys[4]])}</td>
+      <td class="r"><div class="gp-bar-wrap"><div class="gp-bar-bg"><div class="gp-bar-fill" style="width:${Math.min(100,gpPct*4)}%;background:${gpPct>=8?'#1a6b4a':gpPct>=5?'#1a5276':gpPct>=3?'#b7690a':'#c0392b'}"></div></div><span class="pill ${pillClass(gpPct)}">${pct(gpPct)}</span></div></td>
+    </tr>`;
+  }).join('');
+  return `<table class="data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function makeSkuTable(rows) {
+  return `<table class="data-table">
+    <thead><tr><th>SKU</th><th class="r">Revenue</th><th class="r">Cases</th><th class="r">Avg Cost</th><th class="r">COGS</th><th class="r">GP</th><th class="r">GP%</th><th class="r">Open</th><th class="r">Close</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.Item}">${r.Item}</td>
+      <td class="r">${cr(r.revenue)}</td>
+      <td class="r">${num(r.qty)}</td>
+      <td class="r">₹${(r.avg_rate||0).toFixed(2)}</td>
+      <td class="r">${cr(r.cogs)}</td>
+      <td class="r">${lk(r.gp)}</td>
+      <td class="r"><span class="pill ${pillClass(r.gp_pct)}">${pct(r.gp_pct)}</span></td>
+      <td class="r">${num(r.open_qty||0)}</td>
+      <td class="r">${num(r.close_qty||0)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// ── MoM CHART ─────────────────────────────────────────────────────────────────
+function renderMoM() {
+  const months = Object.keys(allMonths);
+  if (months.length < 2) return;
+  const mom = document.getElementById('momSection');
+  mom.innerHTML = '<canvas id="momChart" role="img" aria-label="Month on month GP trend"></canvas>';
+  mom.querySelector('canvas').style.height = '220px';
+  mom.style.position = 'relative';
+  if (charts.mom) charts.mom.destroy();
+  charts.mom = new Chart(document.getElementById('momChart'), {
+    type:'bar',
+    data:{
+      labels: months,
+      datasets:[
+        {label:'Revenue', data:months.map(m=>allMonths[m].kpis.net_rev), backgroundColor:'#aac9e8'},
+        {label:'COGS', data:months.map(m=>allMonths[m].kpis.cogs), backgroundColor:'#f0b8b0'},
+        {label:'Gross Profit', data:months.map(m=>allMonths[m].kpis.gp), backgroundColor:'#b2d8c4', type:'line', borderColor:'#1a6b4a', borderWidth:2, pointRadius:4}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
+      scales:{
+        x:{grid:{display:false}},
+        y:{ticks:{callback:v=>'₹'+(v/1e5).toFixed(0)+'L', font:{size:10}}}
+      }
+    }
+  });
+}
+
+// ── GOOGLE SHEETS LOADER ──────────────────────────────────────────────────────
+const SHEET_ID = '1EhpgtojfLuP7wltE1uwwFX01uBm-r9Dx';
+const SHEET_TABS = { sales:'sales', sales_return:'sales_return', purchases:'purchases', stock:'stock' };
+
+async function loadFromSheet() {
+  const urlInput = document.getElementById('gsUrl').value.trim();
+  const pill = document.getElementById('statusPill');
+  pill.textContent = '⟳ Loading…';
+  pill.className = 'status-pill status-demo';
+
+  try {
+    // Use hardcoded ID or extract from pasted URL
+    let sheetId = SHEET_ID;
+    if (urlInput) {
+      const match = urlInput.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      if (match) sheetId = match[1];
+    }
+
+    const csvs = {};
+    for (const [key, tabName] of Object.entries(SHEET_TABS)) {
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+      const resp = await fetch(csvUrl);
+      if (!resp.ok) throw new Error(`Could not load tab "${tabName}". Make sure the sheet is shared as "Anyone with link can view".`);
+      const text = await resp.text();
+      if (text.includes('signin') || text.includes('ServiceLogin')) throw new Error(`Sheet is not public. Please share it as "Anyone with link can view".`);
+      csvs[key] = text;
+    }
+
+    // Split multi-month data and process each month
+    const monthsData = processSheetData(csvs);
+    monthsData.forEach(d => addMonth(d));
+
+    document.getElementById('gsSetup').style.display = 'none';
+    const loaded = monthsData.map(d => d.meta.month).join(', ');
+    pill.textContent = '● Live: ' + loaded;
+    pill.className = 'status-pill status-live';
+
+  } catch(e) {
+    pill.textContent = '✕ ' + e.message;
+    pill.className = 'status-pill status-err';
+    console.error(e);
+  }
+}
+
+// ── CSV PARSER ────────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  return lines.map(line => {
+    const cols = []; let cur = ''; let inQ = false;
+    for (const c of line) {
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+// Rows to skip — ERP title block patterns
+const SKIP_PATTERNS = [
+  /rmc india/i, /sales day book/i, /purchase register/i, /sales return/i,
+  /stock movement/i, /forlastmonth/i, /daterange/i, /item item category/i,
+  /^\s*$/, /^"{0,1}\s*"{0,1}$/
+];
+function isJunkRow(row) {
+  const joined = row.join('').trim();
+  if (!joined) return true;
+  return SKIP_PATTERNS.some(p => p.test(joined));
+}
+
+// Find the real header row (contains key column names)
+const HEADER_SIGNALS = ['taxable value','average rate','quantity','item','date','voucher'];
+function isHeaderRow(row) {
+  const joined = row.map(c=>c.toLowerCase()).join(' ');
+  return HEADER_SIGNALS.filter(s => joined.includes(s)).length >= 2;
+}
+
+// Split a flat CSV (with repeated ERP headers) into per-month row blocks
+function splitByMonth(rows) {
+  const blocks = [];
+  let currentHeaders = null;
+  let currentRows = [];
+
+  for (const row of rows) {
+    if (isJunkRow(row)) continue;
+    if (isHeaderRow(row)) {
+      // Save previous block
+      if (currentHeaders && currentRows.length) blocks.push({ headers: currentHeaders, rows: currentRows });
+      currentHeaders = row.map(h => h.replace(/"/g,'').trim());
+      currentRows = [];
+    } else if (currentHeaders) {
+      const obj = {};
+      currentHeaders.forEach((h, i) => { obj[h] = (row[i] || '').replace(/"/g,'').trim(); });
+      // Skip sub-total / grand-total rows
+      const first = Object.values(obj)[0] || '';
+      if (/sub total|grand total/i.test(first)) continue;
+      currentRows.push(obj);
+    }
+  }
+  if (currentHeaders && currentRows.length) blocks.push({ headers: currentHeaders, rows: currentRows });
+  return blocks;
+}
+
+// Group data rows by month using the Date or month column
+function groupRowsByMonth(rows) {
+  const byMonth = {};
+  rows.forEach(r => {
+    const dateStr = r['Date'] || r['date'] || '';
+    const monthCol = r['month'] || r['Month'] || '';
+    const yearCol = r['year'] || r['Year'] || '';
+    let monthKey = 'Unknown';
+
+    if (monthCol && yearCol) {
+      monthKey = monthCol.trim() + ' ' + yearCol.trim();
+    } else if (dateStr) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        if (!isNaN(d)) monthKey = d.toLocaleString('en-IN',{month:'long'}) + ' ' + d.getFullYear();
+      }
+    }
+    if (!byMonth[monthKey]) byMonth[monthKey] = [];
+    byMonth[monthKey].push(r);
+  });
+  return byMonth;
+}
+
+// ── PROCESS ALL SHEET DATA → array of monthly data objects ───────────────────
+function processSheetData(csvs) {
+  function n(v) { return parseFloat((v||'').toString().replace(/,/g,'')) || 0; }
+
+  // Parse each tab — handle multiple header blocks (appended months)
+  function getTabRows(csv) {
+    const raw = parseCSV(csv);
+    const blocks = splitByMonth(raw);
+    return blocks.flatMap(b => b.rows);
+  }
+
+  const allSales     = getTabRows(csvs.sales);
+  const allReturns   = getTabRows(csvs.sales_return);
+  const allPurchases = getTabRows(csvs.purchases);
+  const allStock     = getTabRows(csvs.stock);
+
+  // Group each tab by month
+  const salesByMonth    = groupRowsByMonth(allSales.filter(r => r['Warehouse Name'] || r['Salesman Name']));
+  const returnsByMonth  = groupRowsByMonth(allReturns.filter(r => r['Item']));
+  const stockByMonth    = groupRowsByMonth(allStock.filter(r => r['Item'] && !/sub total|grand total/i.test(r['Item'])));
+
+  // All months present across any tab
+  const allMonthKeys = [...new Set([
+    ...Object.keys(salesByMonth),
+    ...Object.keys(stockByMonth)
+  ])].filter(m => m !== 'Unknown').sort((a,b) => {
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const [am, ay] = a.split(' '); const [bm, by] = b.split(' ');
+    return (parseInt(ay)||0)*12 + months.indexOf(am) - ((parseInt(by)||0)*12 + months.indexOf(bm));
+  });
+
+  return allMonthKeys.map(monthKey => {
+    const sales    = salesByMonth[monthKey] || [];
+    const ret      = returnsByMonth[monthKey] || [];
+    const stock    = allStock.filter(r => {
+      // stock report doesn't always have month — use all stock for the closest month
+      const sm = groupRowsByMonth([r]);
+      return Object.keys(sm)[0] === monthKey || Object.keys(sm)[0] === 'Unknown';
+    });
+
+    // Use stock from correct month if available, else fall back to all stock
+    const stockRows = (stockByMonth[monthKey] || allStock).filter(r =>
+      r['Item'] && !/sub total|grand total/i.test(r['Item'])
+    );
+
+    const activeItems = new Set(sales.map(r => r['Item']).filter(Boolean));
+    const activeStock = stockRows.filter(r => activeItems.has(r['Item']));
+
+    // Avg rate map from stock
+    const avgRate = {};
+    activeStock.forEach(r => { if (r['Item']) avgRate[r['Item']] = n(r['Average Rate']); });
+
+    // Enrich sales rows
+    sales.forEach(r => {
+      r._tv      = n(r['Taxable Value']);
+      r._qty     = n(r['Quantity']);
+      r._freight = n(r['Other Charges (F1)']);
+      r._cogs    = (avgRate[r['Item']] || 0) * n(r['Quantity']);
+      const parts = (r['Date']||'').split('/');
+      r._day = parts.length === 3 ? parseInt(parts[0]) : 0;
+    });
+    ret.forEach(r => { r._tv = n(r['Taxable Value']); r._qty = n(r['Quantity']); });
+    activeStock.forEach(r => {
+      r._openV  = n(r['Opening Value']);
+      r._openQ  = n(r['Opening  Qty'] || r['Opening Qty']);
+      r._recV   = n(r['Received Value']);
+      r._recQ   = n(r['Received Qty']);
+      r._issuedV= n(r['Issued Value']);
+      r._balV   = n(r['Balance Value']);
+      r._balQ   = n(r['Balance Qty']);
+    });
+
+    // KPIs
+    const gross_rev  = sales.reduce((s,r)=>s+r._tv,0);
+    const sales_ret  = ret.reduce((s,r)=>s+r._tv,0);
+    const net_rev    = gross_rev - sales_ret;
+    const cogs       = activeStock.reduce((s,r)=>s+r._issuedV,0);
+    const freight    = sales.reduce((s,r)=>s+r._freight,0);
+    const gp         = net_rev - cogs;
+    const gp_after   = gp - freight;
+
+    // Period label
+    const [mName, mYear] = monthKey.split(' ');
+    const mIdx = ['January','February','March','April','May','June','July','August','September','October','November','December'].indexOf(mName);
+    const lastDay = mIdx >= 0 ? new Date(parseInt(mYear), mIdx+1, 0).getDate() : 30;
+    const shortM = mName ? mName.slice(0,3) : '';
+    const period = `01 ${shortM} – ${lastDay} ${shortM} ${mYear||''}`;
+
+    // Group helper
+    function grp(arr, key) {
+      const map = {};
+      arr.forEach(r => {
+        const k = r[key] || 'Unknown';
+        if (!map[k]) map[k] = {key:k, revenue:0, qty:0, cogs:0};
+        map[k].revenue += r._tv; map[k].qty += r._qty; map[k].cogs += r._cogs;
+      });
+      return Object.values(map).map(g => ({
+        ...g, gp: g.revenue-g.cogs,
+        gp_pct: g.revenue ? Math.round((g.revenue-g.cogs)/g.revenue*1000)/10 : 0
+      })).sort((a,b)=>b.revenue-a.revenue);
+    }
+
+    // Daily
+    const dailyMap = {};
+    sales.forEach(r => {
+      const d = r._day;
+      if (!dailyMap[d]) dailyMap[d] = {Day:d,revenue:0,qty:0,freight:0,cogs:0};
+      dailyMap[d].revenue += r._tv; dailyMap[d].qty += r._qty;
+      dailyMap[d].freight += r._freight; dailyMap[d].cogs += r._cogs;
+    });
+    const daily = Object.values(dailyMap).sort((a,b)=>a.Day-b.Day).map(d=>({...d,gp:d.revenue-d.cogs}));
+
+    const by_sal  = grp(sales,'Salesman Name').map(g=>({name:g.key,revenue:Math.round(g.revenue),qty:g.qty,cogs:Math.round(g.cogs),gp:Math.round(g.gp),gp_pct:g.gp_pct}));
+    const by_cat  = grp(sales,'Item Sub Category Name').map(g=>({category:g.key,revenue:Math.round(g.revenue),qty:g.qty,cogs:Math.round(g.cogs),gp:Math.round(g.gp),gp_pct:g.gp_pct}));
+    const by_cust = grp(sales,'Account Name').slice(0,15).map(g=>({name:g.key,revenue:Math.round(g.revenue),qty:g.qty,cogs:Math.round(g.cogs),gp:Math.round(g.gp),gp_pct:g.gp_pct}));
+    const by_wh   = grp(sales,'Warehouse Name').map(g=>({name:g.key,revenue:Math.round(g.revenue),qty:g.qty,cogs:Math.round(g.cogs),gp:Math.round(g.gp),gp_pct:g.gp_pct}));
+    const by_bt   = grp(sales,'B Type').map(g=>({type:g.key,revenue:Math.round(g.revenue),qty:g.qty,cogs:Math.round(g.cogs),gp:Math.round(g.gp),gp_pct:g.gp_pct}));
+
+    // SKU
+    const skuMap = {};
+    sales.forEach(r => {
+      const k = r['Item']; if (!k) return;
+      if (!skuMap[k]) skuMap[k] = {Item:k,category:r['Item Sub Category Name']||'',revenue:0,qty:0,cogs:0,avg_rate:avgRate[k]||0,open_qty:0,close_qty:0};
+      skuMap[k].revenue += r._tv; skuMap[k].qty += r._qty; skuMap[k].cogs += r._cogs;
+    });
+    activeStock.forEach(r => {
+      if (skuMap[r['Item']]) { skuMap[r['Item']].open_qty = r._openQ; skuMap[r['Item']].close_qty = r._balQ; }
+    });
+    const by_sku = Object.values(skuMap).map(s=>({...s,gp:Math.round(s.revenue-s.cogs),revenue:Math.round(s.revenue),cogs:Math.round(s.cogs),gp_pct:s.revenue?Math.round((s.revenue-s.cogs)/s.revenue*1000)/10:0})).sort((a,b)=>b.revenue-a.revenue).slice(0,20);
+
+    return {
+      meta: { month: monthKey, period },
+      kpis: {
+        gross_rev:Math.round(gross_rev), sales_ret:Math.round(sales_ret), net_rev:Math.round(net_rev),
+        cogs:Math.round(cogs), gp:Math.round(gp), gp_pct:net_rev?Math.round(gp/net_rev*1000)/10:0,
+        freight:Math.round(freight), gp_after:Math.round(gp_after), gp_after_pct:net_rev?Math.round(gp_after/net_rev*1000)/10:0,
+        open_stock:Math.round(activeStock.reduce((s,r)=>s+r._openV,0)),
+        purchases:Math.round(activeStock.reduce((s,r)=>s+r._recV,0)),
+        close_stock:Math.round(activeStock.reduce((s,r)=>s+r._balV,0)),
+        open_qty:Math.round(activeStock.reduce((s,r)=>s+r._openQ,0)),
+        purch_qty:Math.round(activeStock.reduce((s,r)=>s+r._recQ,0)),
+        close_qty:Math.round(activeStock.reduce((s,r)=>s+r._balQ,0)),
+        total_qty:Math.round(sales.reduce((s,r)=>s+r._qty,0))
+      },
+      daily, by_salesman:by_sal, by_category:by_cat, by_customer:by_cust,
+      by_sku, by_warehouse:by_wh, by_btype:by_bt
+    };
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// Auto-load from hardcoded sheet on startup
+window.addEventListener('DOMContentLoaded', () => {
+  loadDemo();           // show demo instantly
+  loadFromSheet();      // then try live sheet in background
+});
+</script>
+</body>
+</html>
