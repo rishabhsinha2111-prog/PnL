@@ -632,7 +632,13 @@ function groupRowsByMonth(rows) {
 }
 
 // ── STOCK TAB: parse using MONTH: marker rows ─────────────────────────────────
-// Format: paste a row with "MONTH: April 2026" before each month's stock block
+// Format: one row "MONTH: April 2026" before each month's stock block
+// Stock header is identified by containing BOTH "Item" AND "Average Rate"
+function isStockHeaderRow(row) {
+  const vals = row.map(c => c.replace(/"/g,'').trim().toLowerCase());
+  return vals.some(v => v === 'item') && vals.some(v => v.includes('average rate'));
+}
+
 function parseStockByMarker(csv) {
   if (!csv || !csv.trim()) return {};
   const raw = parseCSV(csv);
@@ -641,35 +647,43 @@ function parseStockByMarker(csv) {
   let headers = null;
 
   for (const row of raw) {
-    const joined = row.join('').trim().replace(/"/g, '');
+    // Clean each cell
+    const cleaned = row.map(c => c.replace(/"/g,'').trim());
+    const joined  = cleaned.join('').trim();
     if (!joined) continue;
 
-    // Detect marker row: "MONTH: April 2026" or "MONTH:April 2026"
-    const markerMatch = joined.match(/^MONTH:\s*(.+)$/i);
+    // ── MONTH: marker detection ──────────────────────────────────────────────
+    // Matches "MONTH: April 2026" or "MONTH:April 2026" anywhere in the row
+    const fullRow = cleaned.join(' ');
+    const markerMatch = fullRow.match(/MONTH:\s*([A-Za-z]+ \d{4})/i);
     if (markerMatch) {
       currentMonth = markerMatch[1].trim();
-      headers = null; // reset headers for this block
+      headers = null;
       if (!byMonth[currentMonth]) byMonth[currentMonth] = [];
       continue;
     }
 
-    // If no marker yet, try to detect month from ERP date range header
-    // e.g. "ForLastMonth01/04/2026 to 30/04/2026"
-    const dateRangeMatch = joined.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-    if (!currentMonth && dateRangeMatch) {
-      const d = new Date(`${dateRangeMatch[3]}-${dateRangeMatch[2]}-${dateRangeMatch[1]}`);
-      if (!isNaN(d)) currentMonth = d.toLocaleString('en-IN',{month:'long'}) + ' ' + d.getFullYear();
-      if (!byMonth[currentMonth]) byMonth[currentMonth] = [];
+    // Skip junk rows (ERP title block etc.) — but only before we have a marker
+    if (!currentMonth) continue;
+
+    // ── Stock header row — must have "Item" and "Average Rate" ───────────────
+    if (!headers && isStockHeaderRow(cleaned)) {
+      headers = cleaned;
       continue;
     }
 
-    if (isJunkRow(row)) continue;
-
-    // Header row for this block
-    if (isHeaderRow(row)) {
-      headers = row.map(h => h.replace(/"/g,'').trim());
-      continue;
+    // ── Data row ─────────────────────────────────────────────────────────────
+    if (headers) {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = (cleaned[i] || ''); });
+      const itemVal = obj['Item'] || '';
+      // Skip blank, sub-total, grand-total rows
+      if (!itemVal || /sub total|grand total/i.test(itemVal)) continue;
+      byMonth[currentMonth].push(obj);
     }
+  }
+  return byMonth;
+}
 
     // Data row
     if (headers && currentMonth) {
@@ -731,9 +745,14 @@ function processSheetData(csvs) {
     const activeItems = new Set(sales.map(r => r['Item']).filter(Boolean));
     const activeStock = stockRows.filter(r => activeItems.has(r['Item']));
 
-    // Avg rate map from stock
+    // Avg rate map from stock — find the right column name flexibly
     const avgRate = {};
-    activeStock.forEach(r => { if (r['Item']) avgRate[r['Item']] = n(r['Average Rate']); });
+    activeStock.forEach(r => {
+      if (!r['Item']) return;
+      // Try multiple possible column name variants
+      const rate = n(r['Average Rate'] || r['average rate'] || r['Avg Rate'] || r['avg_rate'] || 0);
+      if (rate > 0) avgRate[r['Item']] = rate;
+    });
 
     // Enrich sales rows
     sales.forEach(r => {
@@ -745,16 +764,15 @@ function processSheetData(csvs) {
       r._day = parts.length === 3 ? parseInt(parts[0]) : 0;
     });
     ret.forEach(r => { r._tv = n(r['Taxable Value']); r._qty = n(r['Quantity']); });
-    // purchase returns — same structure as purchase register
     purchRet.forEach(r => { r._tv = n(r['Taxable Value']); r._qty = n(r['Quantity']); });
     activeStock.forEach(r => {
-      r._openV  = n(r['Opening Value']);
-      r._openQ  = n(r['Opening  Qty'] || r['Opening Qty']);
-      r._recV   = n(r['Received Value']);
-      r._recQ   = n(r['Received Qty']);
-      r._issuedV= n(r['Issued Value']);
-      r._balV   = n(r['Balance Value']);
-      r._balQ   = n(r['Balance Qty']);
+      r._openV  = n(r['Opening Value']  || r['Opening Value']);
+      r._openQ  = n(r['Opening  Qty']   || r['Opening Qty']  || r['Opening Quantity'] || 0);
+      r._recV   = n(r['Received Value'] || 0);
+      r._recQ   = n(r['Received Qty']   || r['Received Quantity'] || 0);
+      r._issuedV= n(r['Issued Value']   || 0);
+      r._balV   = n(r['Balance Value']  || 0);
+      r._balQ   = n(r['Balance Qty']    || r['Balance Quantity'] || 0);
     });
 
     // KPIs
