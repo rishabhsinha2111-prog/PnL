@@ -715,7 +715,13 @@ function processSheetData(csvs) {
   const allPurchRet    = csvs.purchase_return ? getTabRows(csvs.purchase_return) : [];
 
   // Stock uses marker-based month detection
-  const stockByMonth   = parseStockByMarker(csvs.stock);
+  //const stockByMonth   = parseStockByMarker(csvs.stock);
+
+  const stockByMonth = parseStockByMarker(csvs.stock);
+  console.log('STOCK MONTHS FOUND:', Object.keys(stockByMonth));
+  console.log('STOCK SAMPLE:', JSON.stringify(Object.values(stockByMonth)[0]?.slice(0,2)));
+  console.log('SALES MONTHS FOUND:', Object.keys(salesByMonth));
+  console.log('RAW STOCK FIRST 5 ROWS:', parseCSV(csvs.stock).slice(0,5).map(r=>r.join('|')));
 
   // Group each tab by month
   const salesByMonth    = groupRowsByMonth(allSales.filter(r => r['Warehouse Name'] || r['Salesman Name']));
