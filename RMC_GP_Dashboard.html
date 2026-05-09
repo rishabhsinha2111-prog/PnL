@@ -183,6 +183,10 @@
       <div class="section-title">Stock Position</div>
       <div class="stock-strip" id="stockStrip"></div>
       <div style="margin-top:14px;">
+        <div class="section-title">Purchase Reconciliation</div>
+        <div class="waterfall" id="purchRecon"></div>
+      </div>
+      <div style="margin-top:14px;">
         <div class="section-title">B2B vs B2C</div>
         <div class="chart-card" style="padding:14px;">
           <div class="chart-wrap" style="height:140px;">
@@ -229,7 +233,7 @@
 
 <script>
 // ── DEMO DATA (April 2026) ──────────────────────────────────────────────────
-const DEMO = {"meta":{"month":"April 2026","period":"01 Apr – 30 Apr 2026"},"kpis":{"gross_rev":35704290,"sales_ret":31641,"net_rev":35672649,"cogs":34081150,"gp":1591499,"gp_pct":4.46,"freight":192260,"gp_after":1399239,"gp_after_pct":3.92,"open_stock":9164144,"purchases":32038471,"close_stock":7121466,"open_qty":22181,"purch_qty":79951,"close_qty":17611,"total_qty":84521},"daily":[{"Day":1,"revenue":303076,"qty":705,"freight":6200,"cogs":279042,"gp":24034},{"Day":2,"revenue":4173932,"qty":9936,"freight":10200,"cogs":3888876,"gp":285056},{"Day":3,"revenue":1604288,"qty":3896,"freight":20960,"cogs":1528391,"gp":75897},{"Day":4,"revenue":724569,"qty":1717,"freight":2000,"cogs":661568,"gp":63001},{"Day":6,"revenue":497124,"qty":1139,"freight":3650,"cogs":433051,"gp":64073},{"Day":7,"revenue":1440397,"qty":3400,"freight":7300,"cogs":1289573,"gp":150824},{"Day":8,"revenue":374327,"qty":885,"freight":4000,"cogs":323337,"gp":50991},{"Day":9,"revenue":1225227,"qty":2891,"freight":3200,"cogs":1149081,"gp":76147},{"Day":10,"revenue":1198578,"qty":2834,"freight":6300,"cogs":1121782,"gp":76795},{"Day":11,"revenue":1717320,"qty":4152,"freight":4000,"cogs":1611057,"gp":106262},{"Day":13,"revenue":147143,"qty":326,"freight":1000,"cogs":133197,"gp":13946},{"Day":14,"revenue":1831917,"qty":4321,"freight":6800,"cogs":1757243,"gp":74674},{"Day":15,"revenue":1684975,"qty":3952,"freight":2500,"cogs":1599320,"gp":85654},{"Day":16,"revenue":1284453,"qty":3062,"freight":11000,"cogs":1219283,"gp":65170},{"Day":17,"revenue":657113,"qty":1491,"freight":5200,"cogs":601138,"gp":55975},{"Day":18,"revenue":786974,"qty":1818,"freight":16600,"cogs":725436,"gp":61537},{"Day":20,"revenue":1001645,"qty":2338,"freight":18900,"cogs":932776,"gp":68869},{"Day":21,"revenue":3786302,"qty":8944,"freight":9500,"cogs":3595127,"gp":191175},{"Day":22,"revenue":1283858,"qty":3013,"freight":6150,"cogs":1211436,"gp":72422},{"Day":23,"revenue":320877,"qty":767,"freight":6500,"cogs":306869,"gp":14008},{"Day":24,"revenue":1708602,"qty":4037,"freight":5300,"cogs":1614352,"gp":94250},{"Day":25,"revenue":1007780,"qty":2315,"freight":3650,"cogs":939070,"gp":68710},{"Day":27,"revenue":548533,"qty":1214,"freight":3000,"cogs":506360,"gp":42173},{"Day":28,"revenue":766603,"qty":1826,"freight":5500,"cogs":719195,"gp":47408},{"Day":29,"revenue":940892,"qty":2205,"freight":4800,"cogs":889262,"gp":51630},{"Day":30,"revenue":4687787,"qty":11337,"freight":18050,"cogs":4083788,"gp":603999}],"by_category":[{"category":"SWING PET -270ML RS.20","revenue":17219993,"qty":41377,"cogs":16298207,"gp":921786,"gp_pct":5.4},{"category":"Swing 140ml","revenue":16253108,"qty":39687,"cogs":14976137,"gp":1276971,"gp_pct":7.9},{"category":"SWING 600 ML RS.40","revenue":1487370,"qty":2246,"cogs":1411171,"gp":76199,"gp_pct":5.1},{"category":"PAPERBOAT","revenue":594468,"qty":915,"cogs":425221,"gp":169247,"gp_pct":28.5},{"category":"SWING 2LTR","revenue":91500,"qty":182,"cogs":0,"gp":91500,"gp_pct":100},{"category":"SWING PET -250ML RS.20","revenue":8467,"qty":20,"cogs":7536,"gp":930,"gp_pct":11.0}],"by_salesman":[{"name":"Ganesh Rajput","revenue":29559981,"qty":69947,"cogs":27581102,"gp":1978879,"gp_pct":6.7},{"name":"Sanjay Chavan","revenue":3336861,"qty":8170,"cogs":2926582,"gp":410279,"gp_pct":12.3},{"name":"Dhondiram","revenue":1298077,"qty":3064,"cogs":1250642,"gp":47436,"gp_pct":3.7},{"name":"Rajesh Upadhyay","revenue":1077482,"qty":2383,"cogs":957622,"gp":119860,"gp_pct":11.1},{"name":"Rahul Dhariya","revenue":281943,"qty":601,"cogs":263308,"gp":18635,"gp_pct":6.6},{"name":"PAPER BOAT","revenue":147417,"qty":350,"cogs":138000,"gp":9417,"gp_pct":6.4}],"by_customer":[{"name":"SAMARTH TRADERS,AURANGABAD","revenue":5695380,"qty":13839,"cogs":5293651,"gp":401729,"gp_pct":7.1},{"name":"Amruta Sales- Kolhapur","revenue":3336861,"qty":8170,"cogs":2926582,"gp":410279,"gp_pct":12.3},{"name":"SAP ENTERPRISES,SOLAPUR","revenue":2954773,"qty":7165,"cogs":2847438,"gp":107336,"gp_pct":3.6},{"name":"Ganesh Enterprises,Chiplun","revenue":2803222,"qty":6620,"cogs":2604905,"gp":198317,"gp_pct":7.1},{"name":"BASANT ENTERPRISES - SANGAMNER PB","revenue":2572331,"qty":6208,"cogs":2460428,"gp":111903,"gp_pct":4.4},{"name":"V G ENTERPRISES,SANGALI","revenue":1298077,"qty":3064,"cogs":1250642,"gp":47436,"gp_pct":3.7},{"name":"YASHTARA INDUSTRIES,Sindhudurg","revenue":1222234,"qty":2930,"cogs":1165847,"gp":56387,"gp_pct":4.6},{"name":"Kavya Agency,Latur","revenue":888985,"qty":2125,"cogs":849651,"gp":39334,"gp_pct":4.4},{"name":"POOJA ENTERPRISES,DEHU ROAD","revenue":731962,"qty":1573,"cogs":640985,"gp":90977,"gp_pct":12.4},{"name":"AHAD SALES - BHAVANI PETH","revenue":672822,"qty":1493,"cogs":614265,"gp":58557,"gp_pct":8.7}],"by_sku":[{"Item":"Swing Coconut Water X 30 PET 270ML 20","category":"270ML","revenue":6657747,"qty":16002,"cogs":6360795,"gp":296952,"gp_pct":4.5,"avg_rate":397.5,"open_qty":4872,"close_qty":4310},{"Item":"PB PET SWING ZESTY POMEGRANATE X 30 BOT 270ML 20","category":"270ML","revenue":6163445,"qty":14881,"cogs":5915198,"gp":248247,"gp_pct":4.0,"avg_rate":397.5,"open_qty":2277,"close_qty":1301},{"Item":"SWING SLURPY MANGO X 54 SPH 140ML","category":"140ML","revenue":3008910,"qty":7356,"cogs":2879286,"gp":129625,"gp_pct":4.3,"avg_rate":391.4,"open_qty":1407,"close_qty":1231},{"Item":"SWING LUSH LYCHEE X 54 SPH 140ML","category":"140ML","revenue":2523381,"qty":6146,"cogs":2405667,"gp":117714,"gp_pct":4.7,"avg_rate":391.4,"open_qty":1562,"close_qty":1406},{"Item":"SWING YUMMY GUAVA X 54 SPH 140ML","category":"140ML","revenue":2407165,"qty":5871,"cogs":2298027,"gp":109138,"gp_pct":4.5,"avg_rate":391.4,"open_qty":1065,"close_qty":524},{"Item":"SWING MIXED FRUIT X 54 SPH 140ML","category":"140ML","revenue":2155585,"qty":5255,"cogs":2056912,"gp":98673,"gp_pct":4.6,"avg_rate":391.4,"open_qty":972,"close_qty":797},{"Item":"PB PET SWING LUSH LYCHEE X 30 BOT 270ML 20","category":"270ML","revenue":1833641,"qty":4385,"cogs":1742950,"gp":90691,"gp_pct":4.9,"avg_rate":397.5,"open_qty":2238,"close_qty":2043},{"Item":"SWING COCONUT WATER X 54 SPH 140ML","category":"140ML","revenue":1594811,"qty":3888,"cogs":1521841,"gp":72970,"gp_pct":4.6,"avg_rate":391.4,"open_qty":996,"close_qty":1013},{"Item":"SWING POMEGRANATE X 54 SPH 140ML","category":"140ML","revenue":1414368,"qty":3436,"cogs":1344919,"gp":69449,"gp_pct":4.9,"avg_rate":391.4,"open_qty":824,"close_qty":543},{"Item":"SWING PULPY ORANGE X 54 SPH 140ML","category":"140ML","revenue":1335826,"qty":3250,"cogs":1272115,"gp":63711,"gp_pct":4.8,"avg_rate":391.4,"open_qty":1519,"close_qty":924}],"by_warehouse":[{"name":"PB DD","revenue":18544497,"qty":44660,"cogs":17356789,"gp":1187708,"gp_pct":6.4},{"name":"WADKI PB","revenue":15920744,"qty":36826,"cogs":14664871,"gp":1255873,"gp_pct":7.9},{"name":"YD DD","revenue":1239049,"qty":3035,"cogs":1097950,"gp":141099,"gp_pct":11.4}],"by_btype":[{"type":"B2B","revenue":29499926,"qty":70171,"cogs":27369684,"gp":2130242,"gp_pct":7.2},{"type":"B2C","revenue":6204364,"qty":14350,"cogs":5749925,"gp":454439,"gp_pct":7.3}]};
+const DEMO = {"meta":{"month":"April 2026","period":"01 Apr – 30 Apr 2026"},"kpis":{"gross_rev":35704290,"sales_ret":31641,"net_rev":35672649,"cogs":34081150,"gp":1591499,"gp_pct":4.46,"freight":192260,"gp_after":1399239,"gp_after_pct":3.92,"open_stock":9164144,"purchases":32038471,"purch_ret":0,"net_purch":32038471,"close_stock":7121466,"open_qty":22181,"purch_qty":79951,"close_qty":17611,"total_qty":84521},"daily":[{"Day":1,"revenue":303076,"qty":705,"freight":6200,"cogs":279042,"gp":24034},{"Day":2,"revenue":4173932,"qty":9936,"freight":10200,"cogs":3888876,"gp":285056},{"Day":3,"revenue":1604288,"qty":3896,"freight":20960,"cogs":1528391,"gp":75897},{"Day":4,"revenue":724569,"qty":1717,"freight":2000,"cogs":661568,"gp":63001},{"Day":6,"revenue":497124,"qty":1139,"freight":3650,"cogs":433051,"gp":64073},{"Day":7,"revenue":1440397,"qty":3400,"freight":7300,"cogs":1289573,"gp":150824},{"Day":8,"revenue":374327,"qty":885,"freight":4000,"cogs":323337,"gp":50991},{"Day":9,"revenue":1225227,"qty":2891,"freight":3200,"cogs":1149081,"gp":76147},{"Day":10,"revenue":1198578,"qty":2834,"freight":6300,"cogs":1121782,"gp":76795},{"Day":11,"revenue":1717320,"qty":4152,"freight":4000,"cogs":1611057,"gp":106262},{"Day":13,"revenue":147143,"qty":326,"freight":1000,"cogs":133197,"gp":13946},{"Day":14,"revenue":1831917,"qty":4321,"freight":6800,"cogs":1757243,"gp":74674},{"Day":15,"revenue":1684975,"qty":3952,"freight":2500,"cogs":1599320,"gp":85654},{"Day":16,"revenue":1284453,"qty":3062,"freight":11000,"cogs":1219283,"gp":65170},{"Day":17,"revenue":657113,"qty":1491,"freight":5200,"cogs":601138,"gp":55975},{"Day":18,"revenue":786974,"qty":1818,"freight":16600,"cogs":725436,"gp":61537},{"Day":20,"revenue":1001645,"qty":2338,"freight":18900,"cogs":932776,"gp":68869},{"Day":21,"revenue":3786302,"qty":8944,"freight":9500,"cogs":3595127,"gp":191175},{"Day":22,"revenue":1283858,"qty":3013,"freight":6150,"cogs":1211436,"gp":72422},{"Day":23,"revenue":320877,"qty":767,"freight":6500,"cogs":306869,"gp":14008},{"Day":24,"revenue":1708602,"qty":4037,"freight":5300,"cogs":1614352,"gp":94250},{"Day":25,"revenue":1007780,"qty":2315,"freight":3650,"cogs":939070,"gp":68710},{"Day":27,"revenue":548533,"qty":1214,"freight":3000,"cogs":506360,"gp":42173},{"Day":28,"revenue":766603,"qty":1826,"freight":5500,"cogs":719195,"gp":47408},{"Day":29,"revenue":940892,"qty":2205,"freight":4800,"cogs":889262,"gp":51630},{"Day":30,"revenue":4687787,"qty":11337,"freight":18050,"cogs":4083788,"gp":603999}],"by_category":[{"category":"SWING PET -270ML RS.20","revenue":17219993,"qty":41377,"cogs":16298207,"gp":921786,"gp_pct":5.4},{"category":"Swing 140ml","revenue":16253108,"qty":39687,"cogs":14976137,"gp":1276971,"gp_pct":7.9},{"category":"SWING 600 ML RS.40","revenue":1487370,"qty":2246,"cogs":1411171,"gp":76199,"gp_pct":5.1},{"category":"PAPERBOAT","revenue":594468,"qty":915,"cogs":425221,"gp":169247,"gp_pct":28.5},{"category":"SWING 2LTR","revenue":91500,"qty":182,"cogs":0,"gp":91500,"gp_pct":100},{"category":"SWING PET -250ML RS.20","revenue":8467,"qty":20,"cogs":7536,"gp":930,"gp_pct":11.0}],"by_salesman":[{"name":"Ganesh Rajput","revenue":29559981,"qty":69947,"cogs":27581102,"gp":1978879,"gp_pct":6.7},{"name":"Sanjay Chavan","revenue":3336861,"qty":8170,"cogs":2926582,"gp":410279,"gp_pct":12.3},{"name":"Dhondiram","revenue":1298077,"qty":3064,"cogs":1250642,"gp":47436,"gp_pct":3.7},{"name":"Rajesh Upadhyay","revenue":1077482,"qty":2383,"cogs":957622,"gp":119860,"gp_pct":11.1},{"name":"Rahul Dhariya","revenue":281943,"qty":601,"cogs":263308,"gp":18635,"gp_pct":6.6},{"name":"PAPER BOAT","revenue":147417,"qty":350,"cogs":138000,"gp":9417,"gp_pct":6.4}],"by_customer":[{"name":"SAMARTH TRADERS,AURANGABAD","revenue":5695380,"qty":13839,"cogs":5293651,"gp":401729,"gp_pct":7.1},{"name":"Amruta Sales- Kolhapur","revenue":3336861,"qty":8170,"cogs":2926582,"gp":410279,"gp_pct":12.3},{"name":"SAP ENTERPRISES,SOLAPUR","revenue":2954773,"qty":7165,"cogs":2847438,"gp":107336,"gp_pct":3.6},{"name":"Ganesh Enterprises,Chiplun","revenue":2803222,"qty":6620,"cogs":2604905,"gp":198317,"gp_pct":7.1},{"name":"BASANT ENTERPRISES - SANGAMNER PB","revenue":2572331,"qty":6208,"cogs":2460428,"gp":111903,"gp_pct":4.4},{"name":"V G ENTERPRISES,SANGALI","revenue":1298077,"qty":3064,"cogs":1250642,"gp":47436,"gp_pct":3.7},{"name":"YASHTARA INDUSTRIES,Sindhudurg","revenue":1222234,"qty":2930,"cogs":1165847,"gp":56387,"gp_pct":4.6},{"name":"Kavya Agency,Latur","revenue":888985,"qty":2125,"cogs":849651,"gp":39334,"gp_pct":4.4},{"name":"POOJA ENTERPRISES,DEHU ROAD","revenue":731962,"qty":1573,"cogs":640985,"gp":90977,"gp_pct":12.4},{"name":"AHAD SALES - BHAVANI PETH","revenue":672822,"qty":1493,"cogs":614265,"gp":58557,"gp_pct":8.7}],"by_sku":[{"Item":"Swing Coconut Water X 30 PET 270ML 20","category":"270ML","revenue":6657747,"qty":16002,"cogs":6360795,"gp":296952,"gp_pct":4.5,"avg_rate":397.5,"open_qty":4872,"close_qty":4310},{"Item":"PB PET SWING ZESTY POMEGRANATE X 30 BOT 270ML 20","category":"270ML","revenue":6163445,"qty":14881,"cogs":5915198,"gp":248247,"gp_pct":4.0,"avg_rate":397.5,"open_qty":2277,"close_qty":1301},{"Item":"SWING SLURPY MANGO X 54 SPH 140ML","category":"140ML","revenue":3008910,"qty":7356,"cogs":2879286,"gp":129625,"gp_pct":4.3,"avg_rate":391.4,"open_qty":1407,"close_qty":1231},{"Item":"SWING LUSH LYCHEE X 54 SPH 140ML","category":"140ML","revenue":2523381,"qty":6146,"cogs":2405667,"gp":117714,"gp_pct":4.7,"avg_rate":391.4,"open_qty":1562,"close_qty":1406},{"Item":"SWING YUMMY GUAVA X 54 SPH 140ML","category":"140ML","revenue":2407165,"qty":5871,"cogs":2298027,"gp":109138,"gp_pct":4.5,"avg_rate":391.4,"open_qty":1065,"close_qty":524},{"Item":"SWING MIXED FRUIT X 54 SPH 140ML","category":"140ML","revenue":2155585,"qty":5255,"cogs":2056912,"gp":98673,"gp_pct":4.6,"avg_rate":391.4,"open_qty":972,"close_qty":797},{"Item":"PB PET SWING LUSH LYCHEE X 30 BOT 270ML 20","category":"270ML","revenue":1833641,"qty":4385,"cogs":1742950,"gp":90691,"gp_pct":4.9,"avg_rate":397.5,"open_qty":2238,"close_qty":2043},{"Item":"SWING COCONUT WATER X 54 SPH 140ML","category":"140ML","revenue":1594811,"qty":3888,"cogs":1521841,"gp":72970,"gp_pct":4.6,"avg_rate":391.4,"open_qty":996,"close_qty":1013},{"Item":"SWING POMEGRANATE X 54 SPH 140ML","category":"140ML","revenue":1414368,"qty":3436,"cogs":1344919,"gp":69449,"gp_pct":4.9,"avg_rate":391.4,"open_qty":824,"close_qty":543},{"Item":"SWING PULPY ORANGE X 54 SPH 140ML","category":"140ML","revenue":1335826,"qty":3250,"cogs":1272115,"gp":63711,"gp_pct":4.8,"avg_rate":391.4,"open_qty":1519,"close_qty":924}],"by_warehouse":[{"name":"PB DD","revenue":18544497,"qty":44660,"cogs":17356789,"gp":1187708,"gp_pct":6.4},{"name":"WADKI PB","revenue":15920744,"qty":36826,"cogs":14664871,"gp":1255873,"gp_pct":7.9},{"name":"YD DD","revenue":1239049,"qty":3035,"cogs":1097950,"gp":141099,"gp_pct":11.4}],"by_btype":[{"type":"B2B","revenue":29499926,"qty":70171,"cogs":27369684,"gp":2130242,"gp_pct":7.2},{"type":"B2C","revenue":6204364,"qty":14350,"cogs":5749925,"gp":454439,"gp_pct":7.3}]};
 
 // ── STATE ───────────────────────────────────────────────────────────────────
 let allMonths = {}; // { 'April 2026': data, ... }
@@ -282,9 +286,34 @@ function renderAll(d) {
   renderKPIs(d.kpis);
   renderWaterfall(d.kpis);
   renderStock(d.kpis);
+  renderPurchRecon(d.kpis);
   renderDaily(d.daily);
   renderBtype(d.by_btype);
   renderTab(currentTab, d);
+}
+
+// ── PURCHASE RECONCILIATION ───────────────────────────────────────────────────
+function renderPurchRecon(k) {
+  const max = k.purchases || 1;
+  const rows = [
+    {label:'Gross Purchases', val:k.purchases,  cls:'bar-rev'},
+    {label:'− Purchase Returns', val:k.purch_ret, cls:'bar-ret'},
+    {label:'Net Purchases',    val:k.net_purch,  cls:'bar-netrev'},
+    {label:'COGS (Issued)',    val:k.cogs,       cls:'bar-cogs'},
+  ];
+  const recon = k.net_purch - k.cogs;
+  document.getElementById('purchRecon').innerHTML =
+    rows.map(r => `
+      <div class="wf-row">
+        <span class="wf-label">${r.label}</span>
+        <div class="wf-track">
+          <div class="wf-bar ${r.cls}" style="width:${Math.max(1,(r.val/max*100)).toFixed(1)}%">${cr(r.val)}</div>
+        </div>
+        <span class="wf-sub">${r.val ? pct(r.val/max*100) : '—'}</span>
+      </div>`).join('') +
+    `<div style="margin-top:8px;padding:6px 10px;background:${recon>=0?'var(--accent-light)':'var(--danger-light)'};border-radius:6px;font-size:12px;color:${recon>=0?'var(--accent)':'var(--danger)'};font-weight:600;">
+      Stock variance (Net Purchases − COGS): ${recon>=0?'+':''}${cr(Math.abs(recon))} ${recon>=0?'(stock built up)':'(stock drawn down)'}
+    </div>`;
 }
 
 // ── KPIs ─────────────────────────────────────────────────────────────────────
@@ -465,7 +494,7 @@ function renderMoM() {
 
 // ── GOOGLE SHEETS LOADER ──────────────────────────────────────────────────────
 const SHEET_ID = '1EhpgtojfLuP7wltE1uwwFX01uBm-r9Dx';
-const SHEET_TABS = { sales:'sales', sales_return:'sales_return', purchases:'purchases', stock:'stock' };
+const SHEET_TABS = { sales:'sales', sales_return:'sales_return', purchases:'purchases', purchase_return:'purchase_return', stock:'stock' };
 
 async function loadFromSheet() {
   const urlInput = document.getElementById('gsUrl').value.trim();
@@ -485,7 +514,11 @@ async function loadFromSheet() {
     for (const [key, tabName] of Object.entries(SHEET_TABS)) {
       const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
       const resp = await fetch(csvUrl);
-      if (!resp.ok) throw new Error(`Could not load tab "${tabName}". Make sure the sheet is shared as "Anyone with link can view".`);
+      // purchase_return tab may be empty — treat as blank rather than error
+      if (!resp.ok) {
+        if (key === 'purchase_return') { csvs[key] = ''; continue; }
+        throw new Error(`Could not load tab "${tabName}". Make sure the sheet is shared as "Anyone with link can view".`);
+      }
       const text = await resp.text();
       if (text.includes('signin') || text.includes('ServiceLogin')) throw new Error(`Sheet is not public. Please share it as "Anyone with link can view".`);
       csvs[key] = text;
@@ -602,14 +635,17 @@ function processSheetData(csvs) {
     return blocks.flatMap(b => b.rows);
   }
 
-  const allSales     = getTabRows(csvs.sales);
-  const allReturns   = getTabRows(csvs.sales_return);
-  const allPurchases = getTabRows(csvs.purchases);
-  const allStock     = getTabRows(csvs.stock);
+  const allSales       = getTabRows(csvs.sales);
+  const allReturns     = getTabRows(csvs.sales_return);
+  const allPurchases   = getTabRows(csvs.purchases);
+  const allPurchRet    = csvs.purchase_return ? getTabRows(csvs.purchase_return) : [];
+  const allStock       = getTabRows(csvs.stock);
 
   // Group each tab by month
   const salesByMonth    = groupRowsByMonth(allSales.filter(r => r['Warehouse Name'] || r['Salesman Name']));
   const returnsByMonth  = groupRowsByMonth(allReturns.filter(r => r['Item']));
+  const purchRetByMonth = groupRowsByMonth(allPurchRet.filter(r => r['Item']));
+  const purchByMonth    = groupRowsByMonth(allPurchases.filter(r => r['Item']));
   const stockByMonth    = groupRowsByMonth(allStock.filter(r => r['Item'] && !/sub total|grand total/i.test(r['Item'])));
 
   // All months present across any tab
@@ -625,11 +661,7 @@ function processSheetData(csvs) {
   return allMonthKeys.map(monthKey => {
     const sales    = salesByMonth[monthKey] || [];
     const ret      = returnsByMonth[monthKey] || [];
-    const stock    = allStock.filter(r => {
-      // stock report doesn't always have month — use all stock for the closest month
-      const sm = groupRowsByMonth([r]);
-      return Object.keys(sm)[0] === monthKey || Object.keys(sm)[0] === 'Unknown';
-    });
+    const purchRet = purchRetByMonth[monthKey] || [];
 
     // Use stock from correct month if available, else fall back to all stock
     const stockRows = (stockByMonth[monthKey] || allStock).filter(r =>
@@ -653,6 +685,8 @@ function processSheetData(csvs) {
       r._day = parts.length === 3 ? parseInt(parts[0]) : 0;
     });
     ret.forEach(r => { r._tv = n(r['Taxable Value']); r._qty = n(r['Quantity']); });
+    // purchase returns — same structure as purchase register
+    purchRet.forEach(r => { r._tv = n(r['Taxable Value']); r._qty = n(r['Quantity']); });
     activeStock.forEach(r => {
       r._openV  = n(r['Opening Value']);
       r._openQ  = n(r['Opening  Qty'] || r['Opening Qty']);
@@ -664,13 +698,16 @@ function processSheetData(csvs) {
     });
 
     // KPIs
-    const gross_rev  = sales.reduce((s,r)=>s+r._tv,0);
-    const sales_ret  = ret.reduce((s,r)=>s+r._tv,0);
-    const net_rev    = gross_rev - sales_ret;
-    const cogs       = activeStock.reduce((s,r)=>s+r._issuedV,0);
-    const freight    = sales.reduce((s,r)=>s+r._freight,0);
-    const gp         = net_rev - cogs;
-    const gp_after   = gp - freight;
+    const gross_rev   = sales.reduce((s,r)=>s+r._tv,0);
+    const sales_ret   = ret.reduce((s,r)=>s+r._tv,0);
+    const net_rev     = gross_rev - sales_ret;
+    const cogs        = activeStock.reduce((s,r)=>s+r._issuedV,0);
+    const freight     = sales.reduce((s,r)=>s+r._freight,0);
+    const gp          = net_rev - cogs;
+    const gp_after    = gp - freight;
+    const gross_purch = activeStock.reduce((s,r)=>s+r._recV,0);
+    const purch_ret   = purchRet.reduce((s,r)=>s+r._tv,0);
+    const net_purch   = gross_purch - purch_ret;
 
     // Period label
     const [mName, mYear] = monthKey.split(' ');
@@ -728,7 +765,9 @@ function processSheetData(csvs) {
         cogs:Math.round(cogs), gp:Math.round(gp), gp_pct:net_rev?Math.round(gp/net_rev*1000)/10:0,
         freight:Math.round(freight), gp_after:Math.round(gp_after), gp_after_pct:net_rev?Math.round(gp_after/net_rev*1000)/10:0,
         open_stock:Math.round(activeStock.reduce((s,r)=>s+r._openV,0)),
-        purchases:Math.round(activeStock.reduce((s,r)=>s+r._recV,0)),
+        purchases:Math.round(gross_purch),
+        purch_ret:Math.round(purch_ret),
+        net_purch:Math.round(net_purch),
         close_stock:Math.round(activeStock.reduce((s,r)=>s+r._balV,0)),
         open_qty:Math.round(activeStock.reduce((s,r)=>s+r._openQ,0)),
         purch_qty:Math.round(activeStock.reduce((s,r)=>s+r._recQ,0)),
