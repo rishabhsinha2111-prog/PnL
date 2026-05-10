@@ -515,22 +515,31 @@ async function loadSheet(){
     let sid=SHEET_ID;
     const m=url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
     if(m)sid=m[1];
+    console.log('Loading sheet ID:', sid);
     const csvs={};
     for(const [k,t] of Object.entries(TABS)){
-      const r=await fetch(`https://docs.google.com/spreadsheets/d/${sid}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(t)}`);
+      const fetchUrl=`https://docs.google.com/spreadsheets/d/${sid}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(t)}`;
+      console.log('Fetching tab:', k, t);
+      const r=await fetch(fetchUrl);
+      console.log('Tab', k, 'status:', r.ok, r.status);
       if(!r.ok){if(k==='purchase_return'){csvs[k]='';continue;}throw new Error(`Tab "${t}" not found`);}
       const txt=await r.text();
-      if(txt.includes('signin'))throw new Error('Sheet not public — share as Anyone with link');
+      console.log('Tab', k, 'rows:', txt.split('\n').length, 'first 50 chars:', txt.slice(0,50));
+      if(txt.includes('signin'))throw new Error('Sheet not public');
       csvs[k]=txt;
     }
+    console.log('All tabs loaded, processing...');
     const months=processData(csvs);
-    if(!months.length)throw new Error('No sales data found in sheet');
+    console.log('Months found:', months.map(d=>d.meta.month));
+    months.forEach(d=>console.log(d.meta.month, 'revenue:', d.kpis.gross_rev));
+    if(!months.length)throw new Error('No sales data found');
     allMonths={};
     months.forEach(d=>addMonth(d));
     document.getElementById('setupBox').style.display='none';
     pill.textContent='● Live: '+months.map(d=>d.meta.month).join(', ');
     pill.className='pill p-live';
   }catch(e){
+    console.error('loadSheet error:', e);
     pill.textContent='✕ '+e.message;pill.className='pill p-err';
   }
 }
