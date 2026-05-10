@@ -297,8 +297,12 @@ function parseCSV(text){
 const JUNK=[/rmc india/i,/sales day book/i,/purchase register/i,/sales return register/i,/stock movement/i,/forlastmonth/i,/daterange/i,/item item category/i];
 function isJunk(row){const j=row.join('').trim();if(!j)return true;return JUNK.some(p=>p.test(j));}
 
-const HDR_KEYS=['taxable value','average rate','quantity','item','date','voucher','salesman'];
-function isHdr(row){const j=row.map(c=>c.toLowerCase()).join(' ');return HDR_KEYS.filter(k=>j.includes(k)).length>=2;}
+const HDR_KEYS=['taxable value','quantity','voucher','salesman name','warehouse name','account name'];
+function isHdr(row){
+  // Must match at least 3 exact column header names — not partial matches in data
+  const cells=row.map(c=>c.toLowerCase().trim());
+  return HDR_KEYS.filter(k=>cells.some(c=>c===k)).length>=3;
+}
 
 function isStockHdr(row){
   const v=row.map(c=>c.replace(/"/g,'').trim().toLowerCase());
