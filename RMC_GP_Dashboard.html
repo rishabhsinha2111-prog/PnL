@@ -370,23 +370,39 @@ function n(v){
 
 function processData(csvs){
   function getRows(csv){
-    const blocks=splitBlocks(parseCSV(csv||''));
-    const allRows=blocks.flatMap(b=>b.rows);
-    // Fill down key fields — ERP only puts them on first line of each invoice
-    let lastDate='', lastVoucher='', lastWarehouse='', lastSalesman='', lastMonth='', lastYear='';
+    if(!csv||!csv.trim()) return [];
+    const raw=parseCSV(csv);
+    if(raw.length<2) return [];
+    // Find the header row — exact cell match
+    let hdrIdx=0;
+    for(let i=0;i<Math.min(10,raw.length);i++){
+      const cells=raw[i].map(c=>c.toLowerCase().trim());
+      if(cells.some(c=>c==='taxable value')&&cells.some(c=>c==='quantity')){hdrIdx=i;break;}
+    }
+    const hdr=raw[hdrIdx].map(c=>c.trim());
+    const allRows=[];
+    for(let i=hdrIdx+1;i<raw.length;i++){
+      const cl=raw[i];
+      // Skip completely empty rows
+      if(!cl.join('').trim()) continue;
+      const obj={};
+      hdr.forEach((h,j)=>{obj[h]=(cl[j]||'').trim();});
+      // Skip sub-total/grand-total
+      const first=obj[hdr[0]]||'';
+      if(/sub total|grand total/i.test(first)) continue;
+      allRows.push(obj);
+    }
+    // Fill down key fields
+    let lastDate='',lastVoucher='',lastWarehouse='',lastSalesman='';
     allRows.forEach(r=>{
-      if(r['Date']&&r['Date'].trim()) lastDate=r['Date'].trim();
+      if(r['Date']&&r['Date'].trim()) lastDate=r['Date'];
       else r['Date']=lastDate;
-      if(r['Voucher']&&r['Voucher'].trim()) lastVoucher=r['Voucher'].trim();
+      if(r['Voucher']&&r['Voucher'].trim()) lastVoucher=r['Voucher'];
       else r['Voucher']=lastVoucher;
-      if(r['Warehouse Name']&&r['Warehouse Name'].trim()) lastWarehouse=r['Warehouse Name'].trim();
+      if(r['Warehouse Name']&&r['Warehouse Name'].trim()) lastWarehouse=r['Warehouse Name'];
       else r['Warehouse Name']=lastWarehouse;
-      if(r['Salesman Name']&&r['Salesman Name'].trim()) lastSalesman=r['Salesman Name'].trim();
+      if(r['Salesman Name']&&r['Salesman Name'].trim()) lastSalesman=r['Salesman Name'];
       else r['Salesman Name']=lastSalesman;
-      if(r['month']&&r['month'].trim()) lastMonth=r['month'].trim();
-      else r['month']=lastMonth;
-      if(r['year']&&r['year'].trim()) lastYear=r['year'].trim();
-      else r['year']=lastYear;
     });
     return allRows;
   }
