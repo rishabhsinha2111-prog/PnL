@@ -390,7 +390,14 @@ function processData(csvs){
   const sales=getRows(csvs.sales).filter(r=>r['Warehouse Name']||r['Salesman Name']);
   console.log('Sales rows after filter:', sales.length);
   console.log('Sample row TV:', sales[0]&&sales[0]['Taxable Value']);
+  console.log('Row 100 TV:', sales[100]&&sales[100]['Taxable Value']);
+  console.log('Row 500 TV:', sales[500]&&sales[500]['Taxable Value']);
+  console.log('Row 1000 TV:', sales[1000]&&sales[1000]['Taxable Value']);
   console.log('Total TV raw:', sales.reduce((s,r)=>s+parseFloat((r['Taxable Value']||'').replace(/,/g,''))||0,0));
+  // Count rows with non-zero TV
+  const nonZero=sales.filter(r=>parseFloat((r['Taxable Value']||'').replace(/,/g,''))||0 > 0);
+  console.log('Rows with TV > 0:', nonZero.length);
+  console.log('Rows with TV = 0 or blank:', sales.length - nonZero.length);
   const rets=getRows(csvs.sales_return).filter(r=>r['Item']);
   const pret=getRows(csvs.purchase_return||'').filter(r=>r['Item']);
 
