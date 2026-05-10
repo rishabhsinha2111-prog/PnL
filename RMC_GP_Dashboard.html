@@ -388,6 +388,9 @@ function processData(csvs){
   }
 
   const sales=getRows(csvs.sales).filter(r=>r['Warehouse Name']||r['Salesman Name']);
+  console.log('Sales rows after filter:', sales.length);
+  console.log('Sample row TV:', sales[0]&&sales[0]['Taxable Value']);
+  console.log('Total TV raw:', sales.reduce((s,r)=>s+parseFloat((r['Taxable Value']||'').replace(/,/g,''))||0,0));
   const rets=getRows(csvs.sales_return).filter(r=>r['Item']);
   const pret=getRows(csvs.purchase_return||'').filter(r=>r['Item']);
 
